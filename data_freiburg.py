@@ -3,6 +3,7 @@
 # ==========================================
 import os
 import h5py
+import utils
 import numpy as np
 import data_freiburg_subject_ordering as subjects_ordering
 import config.system as sys_config
@@ -127,6 +128,8 @@ def prepare_and_write_data(basepath,
         
         # load the numpy image (saved by the dicom2numpy file)
         image_data = np.load(basepath + '/' + subjects_ordering.SUBJECT_DIRS[n] + '/image.npy')                  
+        # normalize the image
+        image_data = utils.normalize_image(image_data)
         # make all images of the same shape
         image_data = crop_or_pad_zeros(image_data, common_image_shape)                  
         # move the z-axis to the front, as we want to concantenate data along this axis
