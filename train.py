@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import utils
 import model as model
 import config.system as sys_config
-import data_freiburg
+import data_freiburg_numpy_to_hdf5
 # import augment_data_unet as ad
 
 # import warnings
@@ -73,10 +73,10 @@ def run_training(continue_run):
     # ============================   
     logging.info('============================================================')
     logging.info('Loading training data from: ' + sys_config.project_data_root)    
-    data_tr = data_freiburg.load_data(basepath = sys_config.project_data_root,
-                                      idx_start = 0,
-                                      idx_end = 19,
-                                      train_test='train')
+    data_tr = data_freiburg_numpy_to_hdf5.load_data(basepath = sys_config.project_data_root,
+                                                    idx_start = 0,
+                                                    idx_end = 19,
+                                                    train_test='train')
     images_tr = data_tr['images_train']
     labels_tr = data_tr['labels_train']
     logging.info('Shape of training images: %s' %str(images_tr.shape)) # expected: [img_size_z*num_images, img_size_x, vol_size_y, img_size_t, n_channels]
@@ -84,10 +84,10 @@ def run_training(continue_run):
 
     logging.info('============================================================')
     logging.info('Loading validation data from: ' + sys_config.project_data_root)        
-    data_vl = data_freiburg.load_data(basepath = sys_config.project_data_root,
-                                      idx_start = 20,
-                                      idx_end = 24,
-                                      train_test='validation')
+    data_vl = data_freiburg_numpy_to_hdf5.load_data(basepath = sys_config.project_data_root,
+                                                    idx_start = 20,
+                                                    idx_end = 24,
+                                                    train_test='validation')
     images_vl = data_vl['images_validation']
     labels_vl = data_vl['labels_validation']
     logging.info('Shape of validation images: %s' %str(images_vl.shape))
