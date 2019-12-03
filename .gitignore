@@ -1,0 +1,8 @@
+logdir/
+
+.idea/
+
+__pycache__/
+config/__pycache__/
+experiments/__pycache__/
+

@@ -6,7 +6,7 @@ import h5py
 import utils
 import numpy as np
 import data_freiburg_subject_ordering as subjects_ordering
-import config.system as sys_config
+from config.system import config as sys_config
 
 # ==========================================
 # ==========================================

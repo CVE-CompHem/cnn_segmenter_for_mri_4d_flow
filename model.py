@@ -7,12 +7,13 @@ import logging
 # ================================================================
 def inference(images,
               model_handle,
-              training):
+              training,
+              exp_config):
     '''
     Wrapper function to provide an interface to a model from the model_zoo inside of the model module. 
     '''
 
-    return model_handle(images, training)
+    return model_handle(images, training, exp_config)
 
 # ================================================================
 # ================================================================

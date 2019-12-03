@@ -14,17 +14,19 @@ import matplotlib.pyplot as plt
 
 import utils
 import model as model
-import config.system as sys_config
+from config.system import config as sys_config
 import data_freiburg_numpy_to_hdf5
 # import augment_data_unet as ad
 
 # import warnings
 # warnings.filterwarnings('ignore', '.*output shape of zoom.*')
 
+from args import args
+
 # ==================================================================
 # Set the config file of the experiment you want to run here:
 # ==================================================================
-from experiments import unet as exp_config
+from experiments.unet import model_config as exp_config
 
 # ==================================================================
 # setup logging
@@ -48,7 +50,7 @@ def run_training(continue_run):
     # ============================
     # Initialize step number - this is number of mini-batch runs
     # ============================
-    init_step = 0
+    init_step = 1  # plus 1 as otherwise starts with eval
 
     # ============================
     # if continue_run is set to True, load the model parameters saved earlier
@@ -65,7 +67,7 @@ def run_training(continue_run):
         except:
             logging.warning('Did not find init checkpoint. Maybe first run failed. Disabling continue mode...')
             continue_run = False
-            init_step = 0
+            init_step = 1  # plus 1 as otherwise starts with eval
         logging.info('============================================================')
 
     # ============================
@@ -115,7 +117,8 @@ def run_training(continue_run):
         # ================================================================
         logits = model.inference(images_pl,
                                  exp_config.model_handle,
-                                 training_pl)
+                                 training_pl,
+                                 exp_config)
         
         # ================================================================
         # Add ops for calculation of the training loss
@@ -263,8 +266,8 @@ def run_training(continue_run):
                 # ===========================
                 # write the summaries and print an overview fairly often
                 # ===========================
-                if (step+1) % exp_config.summary_writing_frequency == 0:                    
-                    logging.info('Step %d: loss = %.2f (%.3f sec for the last step)' % (step+1, loss_value, duration))
+                if step % exp_config.summary_writing_frequency == 0:
+                    logging.info('Step %d: loss = %.2f (%.3f sec for the last step)' % (step, loss_value, duration))
                                    
                     # ===========================
                     # update the events file
@@ -296,6 +299,7 @@ def run_training(continue_run):
                 # ===========================
                 if step % exp_config.save_frequency == 0:
 
+                    logging.info('Step %d: saving checkpoint' % (step))
                     checkpoint_file = os.path.join(log_dir, 'models/model.ckpt')
                     saver.save(sess, checkpoint_file, global_step=step)
 
@@ -425,7 +429,7 @@ def iterate_minibatches(images,
 
 # ==================================================================
 # ==================================================================
-def main():
+def train():
     
     # ===========================
     # Create dir if it does not exist
@@ -439,13 +443,24 @@ def main():
     # ===========================
     # Copy experiment config file
     # ===========================
-    shutil.copy(exp_config.__file__, log_dir)
+    shutil.copy(args.model, log_dir) # exp_config.__file__
 
     # ===========================
     # run training
     # ===========================
     run_training(continue_run)
 
+# ==================================================================
+# ==================================================================
+def main():
+    # ===========================
+    # Run training/inference as requested
+    # ===========================
+    if args.train is True:
+        train()
+    else:
+        import inference
+        inference.run_inference()
 
 # ==================================================================
 # ==================================================================

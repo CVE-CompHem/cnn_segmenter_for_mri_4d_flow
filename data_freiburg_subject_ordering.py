@@ -2,7 +2,7 @@
 # import
 # ==============================================
 import os
-import config.system as sys_config
+from config.system import config as sys_config
 
 # ==============================================
 # basepath where the original images of all subjects have been saved as numpy arrays 
