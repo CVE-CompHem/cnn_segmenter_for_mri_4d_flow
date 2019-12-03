@@ -91,8 +91,10 @@ def run_inference():
 
     # Loading data from an hpc-predict-io MRI
     logging.info('============================================================')
-    logging.info('Loading training data from: ' + sys_config.hpc_predict_input_data_root)
-    flow_mri = FlowMRI.read_hdf5(sys_config.hpc_predict_input_data_root)
+    logging.info('Loading input FlowMRI from: ' + args.hpc_predict_input)
+    flow_mri = FlowMRI.read_hdf5(args.hpc_predict_input)
+    logging.info('============================================================')
+
     images_tr = np.concatenate([np.expand_dims(flow_mri.intensity,-1), flow_mri.velocity_mean], axis=-1).transpose([3,0,1,2,4])
     images_tr_preprocessed = np.zeros((images_tr.shape[0],*exp_config.image_size,images_tr.shape[-1]))
     # TODO: exact coordinate transformation
@@ -322,8 +324,18 @@ def run_inference():
             images_tr_seg_probs = images_tr_seg_probs_mri
             del images_tr_seg_probs_mri
 
-        segmented_flow_mri = SegmentedFlowMRI(flow_mri, images_tr_seg_probs.transpose([1,2,3,0])[...])
-        segmented_flow_mri.write_hdf5(sys_config.hpc_predict_output_data_root)
+        logging.info('============================================================')
+        logging.info('Writing SegmentedFlowMRI to: ' + args.hpc_predict_output)
+        segmented_flow_mri = SegmentedFlowMRI(
+            flow_mri.geometry,
+            flow_mri.time,
+            flow_mri.time_heart_cycle_period,
+            flow_mri.intensity,
+            flow_mri.velocity_mean,
+            flow_mri.velocity_cov,
+            images_tr_seg_probs.transpose([1,2,3,0])[...])
+        segmented_flow_mri.write_hdf5(args.hpc_predict_output)
+        logging.info('============================================================')
 
 # ==================================================================
 # ==================================================================

@@ -12,6 +12,10 @@ def parse_args():
                     help='Directory containing MRI data set')
     parser.add_argument('--model', type=str, default='experiments/unet_neerav.json',
                     help='Directory containing model configuration')
+    parser.add_argument('--hpc-predict-input', type=str,
+                    help='Input FlowMRI (for inference only)')
+    parser.add_argument('--hpc-predict-output', type=str, 
+                    help='Output SegmentedFlowMRI (for inference only)')
     return parser.parse_args()
 
 args = parse_args()

@@ -5,7 +5,5 @@
     "log_root": "/home/lukasd/src/neerakara/cnn_segmenter_for_mri_4d_flow/logdir/v0.1/",
     "orig_data_root": "/home/lukasd/src/neerakara/data/MRT Daten Bern/",
     "project_code_root": "/home/lukasd/src/neerakara/cnn_segmenter_for_mri_4d_flow/",
-    "project_data_root": "/home/lukasd/src/neerakara/data/freiburg_subjects_with_nicolas_rw_segmentations/",
-    "hpc_predict_input_data_root": "/home/lukasd/src/hpc-predict/flownet/output/flow_CStest_Volunteer_R4.h5",
-    "hpc_predict_output_data_root": "/home/lukasd/src/hpc-predict/flownet/output/flow_CStest_Volunteer_R4_cnn_segmented.h5"
+    "project_data_root": "/home/lukasd/src/neerakara/data/freiburg_subjects_with_nicolas_rw_segmentations/"
 }
