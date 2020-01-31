@@ -2,8 +2,8 @@
     "local_hostnames": [
         "localhost"
     ],
-    "log_root": "/home/lukasd/src/neerakara/cnn_segmenter_for_mri_4d_flow/logdir/v0.1/",
+    "log_root": "logdir/v0.1/",
     "orig_data_root": "/home/lukasd/src/neerakara/data/MRT Daten Bern/",
-    "project_code_root": "/home/lukasd/src/neerakara/cnn_segmenter_for_mri_4d_flow/",
+    "project_code_root": "../cnn_segmenter_for_mri_4d_flow/",
     "project_data_root": "/home/lukasd/src/neerakara/data/freiburg_subjects_with_nicolas_rw_segmentations/"
 }
