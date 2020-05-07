@@ -35,7 +35,14 @@ from experiments.unet import model_config as exp_config
 # setup logging
 # ==================================================================
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+
+if args.train is True and args.training_output is not None:
+    log_dir = args.training_output
+elif args.train is False and args.inference_output is not None:
+    log_dir = args.inference_output
+else:
+    log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+
 print('log_dir: ' + str(log_dir))
 logging.info('Logging directory: %s' %log_dir)
 
@@ -61,12 +68,12 @@ def run_inference():
     logging.info('============================================================')
     logging.info('Looking for checkpoint file')
     try:
-        if os.path.exists('models/best_dice.ckpt'):
-            init_checkpoint_path = os.path.join(log_dir, 'models/best_dice.ckpt')
+        if os.path.exists(os.path.join(args.training_output,'models/best_dice.ckpt')):
+            init_checkpoint_path = os.path.join(args.training_output, 'models/best_dice.ckpt')
             logging.info('============================================================')
             logging.info('Found best average dice checkpoint - restoring session from %s.' % init_checkpoint_path)
         else:
-            init_checkpoint_path = utils.get_latest_model_checkpoint_path(log_dir, 'models/model.ckpt')
+            init_checkpoint_path = utils.get_latest_model_checkpoint_path(args.training_output, 'models/model.ckpt')
             logging.info('Checkpoint path: %s' % init_checkpoint_path)
             init_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1]) + 1  # plus 1 as otherwise starts with eval
             logging.info('Latest step was: %d' % init_step)
@@ -91,8 +98,8 @@ def run_inference():
 
     # Loading data from an hpc-predict-io MRI
     logging.info('============================================================')
-    logging.info('Loading input FlowMRI from: ' + args.hpc_predict_input)
-    flow_mri = FlowMRI.read_hdf5(args.hpc_predict_input)
+    logging.info('Loading input FlowMRI from: ' + args.inference_input)
+    flow_mri = FlowMRI.read_hdf5(args.inference_input)
     logging.info('============================================================')
 
     images_tr = np.concatenate([np.expand_dims(flow_mri.intensity,-1), flow_mri.velocity_mean], axis=-1).transpose([3,0,1,2,4])
@@ -325,7 +332,9 @@ def run_inference():
             del images_tr_seg_probs_mri
 
         logging.info('============================================================')
-        logging.info('Writing SegmentedFlowMRI to: ' + args.hpc_predict_output)
+        inference_output_file = os.path.join(args.inference_output,
+                                             os.path.basename(args.inference_input)[:-3] + '_cnn_segmented.h5')
+        logging.info('Writing SegmentedFlowMRI to: ' + inference_output_file)
         segmented_flow_mri = SegmentedFlowMRI(
             flow_mri.geometry,
             flow_mri.time,
@@ -334,7 +343,7 @@ def run_inference():
             flow_mri.velocity_mean,
             flow_mri.velocity_cov,
             images_tr_seg_probs.transpose([1,2,3,0])[...])
-        segmented_flow_mri.write_hdf5(args.hpc_predict_output)
+        segmented_flow_mri.write_hdf5(inference_output_file)
         logging.info('============================================================')
 
 # ==================================================================

@@ -32,7 +32,14 @@ from experiments.unet import model_config as exp_config
 # setup logging
 # ==================================================================
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+
+if args.train is True and args.training_output is not None:
+    log_dir = args.training_output
+elif args.train is False and args.inference_output is not None:
+    log_dir = args.inference_output
+else:
+    log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+
 print('log_dir: ' + str(log_dir))
 logging.info('Logging directory: %s' %log_dir)
 
@@ -453,6 +460,15 @@ def train():
 # ==================================================================
 # ==================================================================
 def main():
+    if args.debug_server is not None:
+        try:
+            import pydevd_pycharm
+            debug_server_hostname, debug_server_port = args.debug_server.split(':')
+            pydevd_pycharm.settrace(debug_server_hostname, port=int(debug_server_port), 
+                                    stdoutToServer=True, stderrToServer=True)
+        except:
+            logging.error("Import error for pydevd_pycharm ignored (should not be running debug version).")
+
     # ===========================
     # Run training/inference as requested
     # ===========================
