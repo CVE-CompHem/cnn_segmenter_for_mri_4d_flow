@@ -2,10 +2,17 @@ import model_zoo
 import tensorflow as tf
 
 # ======================================================================
+# brief description of this experiment
+# ======================================================================
+# ...
+
+# ======================================================================
 # Model settings
 # ======================================================================
 model_handle = model_zoo.segmentation_cnn
-experiment_name = 'run3' 
+run_number = 1
+da_ratio = 0.0
+experiment_name = 'unet3d_da_' + str(da_ratio) + '_r' + str(run_number)
 
 # ======================================================================
 # data settings
@@ -18,19 +25,19 @@ nlabels = 2 # [background, foreground]
 # ======================================================================
 # training settings
 # ======================================================================
-max_epochs = 1000
+max_steps = 10000
 batch_size = 8
 learning_rate = 1e-3
 optimizer_handle = tf.train.AdamOptimizer
 loss_type = 'dice'  # crossentropy/dice
-summary_writing_frequency = 20
-train_eval_frequency = 320
-val_eval_frequency = 320
-save_frequency = 800
+summary_writing_frequency = 20 # 4 times in each epoch (if n_tr_images=20, batch_size=8)
+train_eval_frequency = 500 # every 4 epochs (if n_tr_images=20, batch_size=8)
+val_eval_frequency = 500 # every 4 epochs (if n_tr_images=20, batch_size=8)
+save_frequency = 1000 # every 10 epochs (if n_tr_images=20, batch_size=8)
 
 continue_run = False
 debug = True
-augment_data = True
+augment_data = False
 
 # ======================================================================
 # test settings

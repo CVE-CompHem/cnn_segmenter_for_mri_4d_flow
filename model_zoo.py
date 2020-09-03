@@ -6,6 +6,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 def segmentation_cnn(input_images, training): 
     
     with tf.name_scope('segmenter'):
+        
+        n0 = 8
                 
         # ========================================================
         # ENCODER
@@ -14,55 +16,55 @@ def segmentation_cnn(input_images, training):
         # 1st Conv block - two conv layers, followed by max-pooling
         # Each conv layer consists of a convovlution, followed by batch normalization, followed by activation
         # ====================================
-        conv1_1 = tf.layers.Conv3D(filters=4, kernel_size=(3,3,3), padding='same')(input_images)
-        conv1_1 = tf.layers.BatchNormalization()(conv1_1,training=training)
+        conv1_1 = tf.layers.Conv3D(filters = n0, kernel_size=(3,3,3), padding='same')(input_images)
+        conv1_1 = tf.layers.BatchNormalization()(conv1_1, training=training)
         conv1_1 = tf.nn.relu(conv1_1)
-        conv1_2 = tf.layers.Conv3D(filters=4, kernel_size=(3,3,3), padding='same')(conv1_1)
-        conv1_2 = tf.layers.BatchNormalization()(conv1_2,training=training)
+        conv1_2 = tf.layers.Conv3D(filters = n0, kernel_size=(3,3,3), padding='same')(conv1_1)
+        conv1_2 = tf.layers.BatchNormalization()(conv1_2, training=training)
         conv1_2 = tf.nn.relu(conv1_2)
         maxpool1 = tf.layers.MaxPooling3D(pool_size=(2,2,2), strides=(2,2,2), padding='same')(conv1_2)
 
         # ====================================
         # 2nd Conv block
         # ====================================
-        conv2_1 = tf.layers.Conv3D(filters=8, kernel_size=(3,3,3), padding='same')(maxpool1)
-        conv2_1 = tf.layers.BatchNormalization()(conv2_1,training=training)
+        conv2_1 = tf.layers.Conv3D(filters = 2*n0, kernel_size=(3,3,3), padding='same')(maxpool1)
+        conv2_1 = tf.layers.BatchNormalization()(conv2_1, training=training)
         conv2_1 = tf.nn.relu(conv2_1)
-        conv2_2 = tf.layers.Conv3D(filters=8, kernel_size=(3,3,3), padding='same')(conv2_1)
-        conv2_2 = tf.layers.BatchNormalization()(conv2_2,training=training)
+        conv2_2 = tf.layers.Conv3D(filters = 2*n0, kernel_size=(3,3,3), padding='same')(conv2_1)
+        conv2_2 = tf.layers.BatchNormalization()(conv2_2, training=training)
         conv2_2 = tf.nn.relu(conv2_2)
         maxpool2 = tf.layers.MaxPooling3D(pool_size=(2,2,2), strides=(2,2,2), padding='same')(conv2_2)
 
         # ====================================
         # 3rd Conv block
         # ====================================
-        conv3_1 = tf.layers.Conv3D(filters=16, kernel_size=(3,3,3), padding='same')(maxpool2)
-        conv3_1 = tf.layers.BatchNormalization()(conv3_1,training=training)
+        conv3_1 = tf.layers.Conv3D(filters = 4*n0, kernel_size=(3,3,3), padding='same')(maxpool2)
+        conv3_1 = tf.layers.BatchNormalization()(conv3_1, training=training)
         conv3_1 = tf.nn.relu(conv3_1)
-        conv3_2 = tf.layers.Conv3D(filters=16, kernel_size=(3,3,3), padding='same')(conv3_1)
-        conv3_2 = tf.layers.BatchNormalization()(conv3_2,training=training)
+        conv3_2 = tf.layers.Conv3D(filters = 4*n0, kernel_size=(3,3,3), padding='same')(conv3_1)
+        conv3_2 = tf.layers.BatchNormalization()(conv3_2, training=training)
         conv3_2 = tf.nn.relu(conv3_2)
         maxpool3 = tf.layers.MaxPooling3D(pool_size=(2,2,2), strides=(2,2,2), padding='same')(conv3_2)
 
         # ====================================
         # 4th Conv block
         # ====================================
-        conv4_1 = tf.layers.Conv3D(filters=32, kernel_size=(3,3,3), padding='same')(maxpool3)
-        conv4_1 = tf.layers.BatchNormalization()(conv4_1,training=training)
+        conv4_1 = tf.layers.Conv3D(filters = 8*n0, kernel_size=(3,3,3), padding='same')(maxpool3)
+        conv4_1 = tf.layers.BatchNormalization()(conv4_1, training=training)
         conv4_1 = tf.nn.relu(conv4_1)
-        conv4_2 = tf.layers.Conv3D(filters=32, kernel_size=(3,3,3), padding='same')(conv4_1)
-        conv4_2 = tf.layers.BatchNormalization()(conv4_2,training=training)
+        conv4_2 = tf.layers.Conv3D(filters = 8*n0, kernel_size=(3,3,3), padding='same')(conv4_1)
+        conv4_2 = tf.layers.BatchNormalization()(conv4_2, training=training)
         conv4_2 = tf.nn.relu(conv4_2)
         maxpool4 = tf.layers.MaxPooling3D(pool_size=(2,2,2), strides=(2,2,2), padding='same')(conv4_2)
 
         # ====================================
         # 5th Conv block / Bottleneck
         # ====================================
-        conv5_1 = tf.layers.Conv3D(filters=64, kernel_size=(3,3,3), padding='same')(maxpool4)
-        conv5_1 = tf.layers.BatchNormalization()(conv5_1,training=training)
+        conv5_1 = tf.layers.Conv3D(filters = 16*n0, kernel_size=(3,3,3), padding='same')(maxpool4)
+        conv5_1 = tf.layers.BatchNormalization()(conv5_1, training=training)
         conv5_1 = tf.nn.relu(conv5_1)
-        conv5_2 = tf.layers.Conv3D(filters=64, kernel_size=(3,3,3), padding='same')(conv5_1)
-        conv5_2 = tf.layers.BatchNormalization()(conv5_2,training=training)
+        conv5_2 = tf.layers.Conv3D(filters = 16*n0, kernel_size=(3,3,3), padding='same')(conv5_1)
+        conv5_2 = tf.layers.BatchNormalization()(conv5_2, training=training)
         conv5_2 = tf.nn.relu(conv5_2)
 
         # ========================================================
@@ -73,11 +75,11 @@ def segmentation_cnn(input_images, training):
         # Each conv layer consists of a convovlution, followed by batch normalization, followed by activation
         # ====================================
         upsample1 = tf.keras.layers.UpSampling3D(size=(2,2,2))(conv5_2)
-        conc_up1 = tf.concat([conv4_2, upsample1],-1)
-        conv6_1 = tf.layers.Conv3D(filters=32, kernel_size=(3,3,3), padding='same')(conc_up1)
+        conc_up1 = tf.concat([conv4_2, upsample1], -1)
+        conv6_1 = tf.layers.Conv3D(filters = 8*n0, kernel_size=(3,3,3), padding='same')(conc_up1)
         conv6_1 = tf.layers.BatchNormalization()(conv6_1, training=training)
         conv6_1 = tf.nn.relu(conv6_1)
-        conv6_2 = tf.layers.Conv3D(filters=32, kernel_size=(3,3,3), padding='same')(conv6_1)
+        conv6_2 = tf.layers.Conv3D(filters = 8*n0, kernel_size=(3,3,3), padding='same')(conv6_1)
         conv6_2 = tf.layers.BatchNormalization()(conv6_2, training=training)
         conv6_2 = tf.nn.relu(conv6_2)
         
@@ -87,10 +89,10 @@ def segmentation_cnn(input_images, training):
         # ====================================
         upsample2 = tf.keras.layers.UpSampling3D(size=(2,2,2))(conv6_2)
         conc_up2 = tf.concat([conv3_2, upsample2],-1)
-        conv7_1 = tf.layers.Conv3D(filters=16, kernel_size=(3,3,3), padding='same')(conc_up2)
+        conv7_1 = tf.layers.Conv3D(filters = 4*n0, kernel_size=(3,3,3), padding='same')(conc_up2)
         conv7_1 = tf.layers.BatchNormalization()(conv7_1, training=training)
         conv7_1 = tf.nn.relu(conv7_1)
-        conv7_2 = tf.layers.Conv3D(filters=16, kernel_size=(3,3,3), padding='same')(conv7_1)
+        conv7_2 = tf.layers.Conv3D(filters = 4*n0, kernel_size=(3,3,3), padding='same')(conv7_1)
         conv7_2 = tf.layers.BatchNormalization()(conv7_2, training=training)
         conv7_2 = tf.nn.relu(conv7_2)
         
@@ -100,10 +102,10 @@ def segmentation_cnn(input_images, training):
         # ====================================
         upsample3 = tf.keras.layers.UpSampling3D(size=(2,2,2))(conv7_2)
         conc_up3 = tf.concat([conv2_2, upsample3],-1)
-        conv8_1 = tf.layers.Conv3D(filters=8, kernel_size=(3,3,3), padding='same')(conc_up3)
+        conv8_1 = tf.layers.Conv3D(filters = 2*n0, kernel_size=(3,3,3), padding='same')(conc_up3)
         conv8_1 = tf.layers.BatchNormalization()(conv8_1, training=training)
         conv8_1 = tf.nn.relu(conv8_1)
-        conv8_2 = tf.layers.Conv3D(filters=8, kernel_size=(3,3,3), padding='same')(conv8_1)
+        conv8_2 = tf.layers.Conv3D(filters = 2*n0, kernel_size=(3,3,3), padding='same')(conv8_1)
         conv8_2 = tf.layers.BatchNormalization()(conv8_2, training=training)
         conv8_2 = tf.nn.relu(conv8_2)
         
@@ -113,10 +115,10 @@ def segmentation_cnn(input_images, training):
         # ====================================
         upsample4 = tf.keras.layers.UpSampling3D(size=(2,2,2))(conv8_2)
         conc_up4 = tf.concat([conv1_2, upsample4],-1)
-        conv9_1 = tf.layers.Conv3D(filters=4, kernel_size=(3,3,3), padding='same')(conc_up4)
+        conv9_1 = tf.layers.Conv3D(filters = 1*n0, kernel_size=(3,3,3), padding='same')(conc_up4)
         conv9_1 = tf.layers.BatchNormalization()(conv9_1, training=training)
         conv9_1 = tf.nn.relu(conv9_1)
-        conv9_2 = tf.layers.Conv3D(filters=4, kernel_size=(3,3,3), padding='same')(conv9_1)
+        conv9_2 = tf.layers.Conv3D(filters = 1*n0, kernel_size=(3,3,3), padding='same')(conv9_1)
         conv9_2 = tf.layers.BatchNormalization()(conv9_2, training=training)
         conv9_2 = tf.nn.relu(conv9_2)
 
@@ -128,17 +130,29 @@ def segmentation_cnn(input_images, training):
         # ====================================
         # print shapes at various layers in the network
         # ====================================
-        print('Shape of input: ' + str(input_images.shape))        
-        print('Shape after 1st max pooling layer: ' + str(maxpool1.shape))
-        print('Shape after 2nd max pooling layer: ' + str(maxpool2.shape))        
-        print('Shape after 3rd max pooling layer: ' + str(maxpool3.shape))        
-        print('Shape after 4th max pooling layer: ' + str(maxpool4.shape))            
-        print('Shape of the bottleneck layer: ' + str(conv5_2.shape))            
-        print('Shape after 1st upsampling block: ' + str(conv6_2.shape))            
-        print('Shape after 2nd upsampling block: ' + str(conv7_2.shape))     
-        print('Shape after 3rd upsampling block: ' + str(conv8_2.shape))     
-        print('Shape after 4rd upsampling block: ' + str(conv9_2.shape)) 
-        print('Shape of output (before softmax): ' + str(logits.shape)) 
+        logging.info('=======================================================')
+        logging.info('Details of the segmentation CNN architecture')
+        logging.info('=======================================================')
+        logging.info('Shape of input: ' + str(input_images.shape))        
+        logging.info('Shape after 1st max pooling layer: ' + str(maxpool1.shape))
+        logging.info('Shape after 2nd max pooling layer: ' + str(maxpool2.shape))        
+        logging.info('Shape after 3rd max pooling layer: ' + str(maxpool3.shape))        
+        logging.info('Shape after 4th max pooling layer: ' + str(maxpool4.shape))            
+        logging.info('=======================================================')
+        logging.info('Before each maxpool, there are 2 conv blocks.')
+        logging.info('Each conv block consists of conv3d (k=3), followed by BN, followed by relu.')
+        logging.info('=======================================================')
+        logging.info('Shape of the bottleneck layer: ' + str(conv5_2.shape))            
+        logging.info('=======================================================')
+        logging.info('Shape after 1st upsampling block: ' + str(conv6_2.shape))            
+        logging.info('Shape after 2nd upsampling block: ' + str(conv7_2.shape))     
+        logging.info('Shape after 3rd upsampling block: ' + str(conv8_2.shape))     
+        logging.info('Shape after 4rd upsampling block: ' + str(conv9_2.shape)) 
+        logging.info('=======================================================')
+        logging.info('Each upsampling block consists of bilinear upsampling, followed by skip connection, followed by 2 conv blocks.')
+        logging.info('=======================================================')
+        logging.info('Shape of output (before softmax): ' + str(logits.shape)) 
+        logging.info('=======================================================')
 
     return logits
 
