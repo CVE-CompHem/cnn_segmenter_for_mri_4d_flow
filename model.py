@@ -17,6 +17,23 @@ def inference(images,
 
 # ================================================================
 # ================================================================
+def predict(images,
+            model_handle):
+    '''
+    Returns the prediction for an image given a network from the model zoo
+    :param volumes: An input volume tensor
+    :param inference_handle: A model function from the model zoo
+    :return: A prediction mask, and the corresponding softmax output
+    '''
+
+    logits = model_handle(images, training = tf.constant(False, dtype=tf.bool))
+    softmax = tf.nn.softmax(logits)
+    prediction = tf.argmax(softmax, axis=-1)
+
+    return logits, softmax, prediction
+
+# ================================================================
+# ================================================================
 def loss(logits,
          labels,
          nlabels,
@@ -187,21 +204,3 @@ def prepare_tensor_for_summary(vol,
 
     V = tf.reshape(V, tf.stack((-1, vol_w, vol_h, 1)))
     return V
-
-# ================================================================
-# ================================================================
-def predict(volumes,
-            model_handle):
-    '''
-    Returns the prediction for an image given a network from the model zoo
-    :param volumes: An input volume tensor
-    :param inference_handle: A model function from the model zoo
-    :return: A prediction mask, and the corresponding softmax output
-    '''
-
-    logits = model_handle(volumes,
-                          training=tf.constant(False, dtype=tf.bool))
-    softmax = tf.nn.softmax(logits)
-    mask = tf.argmax(softmax, axis=-1)
-
-    return logits, mask, softmax

@@ -2,6 +2,10 @@ import os
 import glob
 import numpy as np
 from scipy.ndimage import gaussian_filter
+from scipy.ndimage import morphology
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt 
     
 # ===================================================
 # ===================================================
@@ -63,7 +67,234 @@ def normalize_image(image):
     normalized_image[...,1] = velocity_image_denoised[...,0] / vpercentile
     normalized_image[...,2] = velocity_image_denoised[...,1] / vpercentile
     normalized_image[...,3] = velocity_image_denoised[...,2] / vpercentile  
-    
-    # print('normalized arrays: max=' + str(np.amax(normalized_arrays)) + ' min:' + str(np.amin(normalized_arrays)))
   
     return normalized_image
+
+# ==========================================================
+# ==========================================================       
+def save_sample_image_and_labels_across_z(x, # nz, nx, ny, nt, 4
+                                          y, # nz, nx, ny, nt
+                                          savepath):
+    
+    nz = x.shape[0]
+    nt = x.shape[3]
+    ids_z = np.arange(0, nz, nz//8)
+    ids_t = np.arange(0, nt, nt//8)
+    nc = len(ids_z)
+    nr = len(ids_t)
+            
+    for r in range(nr):
+
+        plt.figure(figsize=[3*nc, 3*nr])
+            
+        for c in range(nc): 
+            
+            x_c1 = x[ids_z[c], :, :, ids_t[r], 0]
+            x_c2 = x[ids_z[c], :, :, ids_t[r], 1]
+            x_c3 = x[ids_z[c], :, :, ids_t[r], 2]
+            x_c4 = x[ids_z[c], :, :, ids_t[r], 3]
+            y_ = y[ids_z[c], :, :, ids_t[r]]
+            
+            title = 'z_' + str(ids_z[c]) + '_'
+            
+            plt.subplot(nr, nc, nc*0 + c + 1); plt.imshow(x_c1, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c1')
+            plt.subplot(nr, nc, nc*1 + c + 1); plt.imshow(x_c2, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c2')
+            plt.subplot(nr, nc, nc*2 + c + 1); plt.imshow(x_c3, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c3')
+            plt.subplot(nr, nc, nc*3 + c + 1); plt.imshow(x_c4, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c4')
+            plt.subplot(nr, nc, nc*4 + c + 1); plt.imshow(y_, cmap='tab20'); plt.colorbar(); plt.title(title + 'gt')
+            
+        plt.savefig(savepath + '_t' + str(ids_t[r]) + '.png', bbox_inches='tight')
+        plt.close()
+        
+# ==========================================================
+# ==========================================================       
+def save_sample_image_and_labels_across_t(x, # nz, nx, ny, nt, 4
+                                          y, # nz, nx, ny, nt
+                                          savepath):
+    
+    nz = x.shape[0]
+    nt = x.shape[3]
+    
+    ids_z = np.arange(0, nz, nz//8)
+    ids_t = np.arange(0, nt, nt//8)
+    
+    nc = len(ids_t)
+    nr = len(ids_z)
+            
+    for r in range(nr):
+
+        plt.figure(figsize=[3*nc, 3*nr])
+            
+        for c in range(nc): 
+            
+            x_c1 = x[ids_z[r], :, :, ids_t[c], 0]
+            x_c2 = x[ids_z[r], :, :, ids_t[c], 1]
+            x_c3 = x[ids_z[r], :, :, ids_t[c], 2]
+            x_c4 = x[ids_z[r], :, :, ids_t[c], 3]
+            y_ = y[ids_z[r], :, :, ids_t[c]]
+            
+            title = 't_' + str(ids_t[c]) + '_'
+            
+            plt.subplot(nr, nc, nc*0 + c + 1); plt.imshow(x_c1, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c1')
+            plt.subplot(nr, nc, nc*1 + c + 1); plt.imshow(x_c2, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c2')
+            plt.subplot(nr, nc, nc*2 + c + 1); plt.imshow(x_c3, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c3')
+            plt.subplot(nr, nc, nc*3 + c + 1); plt.imshow(x_c4, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c4')
+            plt.subplot(nr, nc, nc*4 + c + 1); plt.imshow(y_, cmap='tab20'); plt.colorbar(); plt.title(title + 'gt')
+            
+        plt.savefig(savepath + '_z' + str(ids_z[r]) + '.png', bbox_inches='tight')
+        plt.close()
+        
+# ==========================================================
+# ==========================================================       
+def save_sample_results(im, # nz, nx, ny, nt, 4
+                        pr, # nz, nx, ny, nt
+                        gt, # nz, nx, ny, nt
+                        filename):
+    
+    nz = im.shape[0]
+    nt = im.shape[3]
+    ids_z = np.arange(0, nz, nz//8)
+    ids_t = np.arange(0, nt, nt//8)
+    nc = len(ids_z)
+    nt = len(ids_t)
+            
+    for t in range(nt):
+
+        nr = 6
+        plt.figure(figsize=[3*nc, 3*nr])
+            
+        for c in range(nc): 
+            
+            x_c1 = im[ids_z[c], :, :, ids_t[t], 0]
+            x_c2 = im[ids_z[c], :, :, ids_t[t], 1]
+            x_c3 = im[ids_z[c], :, :, ids_t[t], 2]
+            x_c4 = im[ids_z[c], :, :, ids_t[t], 3]
+            pr_ = pr[ids_z[c], :, :, ids_t[t]]
+            gt_ = gt[ids_z[c], :, :, ids_t[t]]
+            
+            title = 'z_' + str(ids_z[c]) + '_'
+            
+            plt.subplot(nr, nc, nc*0 + c + 1); plt.imshow(x_c1, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c1')
+            plt.subplot(nr, nc, nc*1 + c + 1); plt.imshow(x_c2, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c2')
+            plt.subplot(nr, nc, nc*2 + c + 1); plt.imshow(x_c3, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c3')
+            plt.subplot(nr, nc, nc*3 + c + 1); plt.imshow(x_c4, cmap='gray'); plt.colorbar(); plt.title(title + 'x_c4')
+            plt.subplot(nr, nc, nc*4 + c + 1); plt.imshow(pr_, cmap='tab20'); plt.colorbar(); plt.title(title + 'pred')
+            plt.subplot(nr, nc, nc*5 + c + 1); plt.imshow(gt_, cmap='tab20'); plt.colorbar(); plt.title(title + 'GT')
+            
+        plt.savefig(filename + '_t' + str(ids_t[t]) + '.png', bbox_inches='tight')
+        plt.close()
+        
+# ================================================================== 
+# Computes hausdorff distance between binary labels (compute separately for each label)
+# ==================================================================    
+def compute_surface_distance_per_label(y_1,
+                                       y_2,
+                                       sampling = 1,
+                                       connectivity = 1):
+
+    y1 = np.atleast_1d(y_1.astype(np.bool))
+    y2 = np.atleast_1d(y_2.astype(np.bool))
+    
+    conn = morphology.generate_binary_structure(y1.ndim, connectivity)
+
+    S1 = y1.astype(np.float32) - morphology.binary_erosion(y1, conn).astype(np.float32)
+    S2 = y2.astype(np.float32) - morphology.binary_erosion(y2, conn).astype(np.float32)
+    
+    S1 = S1.astype(np.bool)
+    S2 = S2.astype(np.bool)
+    
+    dta = morphology.distance_transform_edt(~S1, sampling)
+    dtb = morphology.distance_transform_edt(~S2, sampling)
+    
+    sds = np.concatenate([np.ravel(dta[S2 != 0]), np.ravel(dtb[S1 != 0])])
+    
+    return sds
+
+# ==================================================================   
+# ==================================================================   
+def compute_surface_distance(y1,
+                             y2,
+                             nlabels):
+    
+    mean_surface_distance_list = []
+    hausdorff_distance_list = []
+    
+    for l in range(1, nlabels):
+
+        surface_distance = compute_surface_distance_per_label(y_1 = (y1 == l),
+                                                              y_2 = (y2 == l))
+    
+        mean_surface_distance = surface_distance.mean()
+        # hausdorff_distance = surface_distance.max()
+        hausdorff_distance = np.percentile(surface_distance, 95)
+
+        mean_surface_distance_list.append(mean_surface_distance)
+        hausdorff_distance_list.append(hausdorff_distance)
+        
+    return np.array(hausdorff_distance_list)
+
+# ==================================================================
+# data augmentation function
+# ==================================================================
+def augment_data(images, labels):
+    
+    x_ = np.copy(images)
+    y_ = np.copy(labels)
+    
+    return x_, y_
+
+# ==================================================================
+# crop or pad functions to change image size without changing resolution
+# ==================================================================    
+def crop_or_pad_4dvol_along_0(vol, n):    
+    x = vol.shape[0]
+    x_s = (x - n) // 2
+    x_c = (n - x) // 2
+    if x > n: # original volume has more slices that the required number of slices
+        vol_cropped = vol[x_s:x_s + n, :, :, :, :]
+    else: # original volume has equal of fewer slices that the required number of slices
+        vol_cropped = np.zeros((n, vol.shape[1], vol.shape[2], vol.shape[3], vol.shape[4]))
+        vol_cropped[x_c:x_c + x, :, :, :, :] = vol
+    return vol_cropped
+
+# ==================================================================
+# crop or pad functions to change image size without changing resolution
+# ==================================================================    
+def crop_or_pad_4dvol_along_1(vol, n):    
+    x = vol.shape[1]
+    x_s = (x - n) // 2
+    x_c = (n - x) // 2
+    if x > n: # original volume has more slices that the required number of slices
+        vol_cropped = vol[:, x_s:x_s + n, :, :, :]
+    else: # original volume has equal of fewer slices that the required number of slices
+        vol_cropped = np.zeros((vol.shape[0], n, vol.shape[2], vol.shape[3], vol.shape[4]))
+        vol_cropped[:, x_c:x_c + x, :, :, :] = vol
+    return vol_cropped
+
+# ==================================================================
+# crop or pad functions to change image size without changing resolution
+# ==================================================================    
+def crop_or_pad_4dvol_along_2(vol, n):    
+    x = vol.shape[2]
+    x_s = (x - n) // 2
+    x_c = (n - x) // 2
+    if x > n: # original volume has more slices that the required number of slices
+        vol_cropped = vol[:, :, x_s:x_s + n, :, :]
+    else: # original volume has equal of fewer slices that the required number of slices
+        vol_cropped = np.zeros((vol.shape[0], vol.shape[1], n, vol.shape[3], vol.shape[4]))
+        vol_cropped[:, :, x_c:x_c + x, :, :] = vol
+    return vol_cropped
+
+# ==================================================================
+# crop or pad functions to change image size without changing resolution
+# ==================================================================    
+def crop_or_pad_4dvol_along_3(vol, n):    
+    x = vol.shape[3]
+    x_s = (x - n) // 2
+    x_c = (n - x) // 2
+    if x > n: # original volume has more slices that the required number of slices
+        vol_cropped = vol[:, :, :, x_s:x_s + n, :]
+    else: # original volume has equal of fewer slices that the required number of slices
+        vol_cropped = np.zeros((vol.shape[0], vol.shape[1], vol.shape[2], n, vol.shape[4]))
+        vol_cropped[:, :, :, x_c:x_c + x, :] = vol
+    return vol_cropped

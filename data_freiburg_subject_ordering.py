@@ -221,7 +221,7 @@ subject_dirs_segmented_by_Nicolas = ['14/100190C4/100190C5',
 # ==============================================
 # Although Nicolas also used os.walk() to define the order of subjects,
 # he had saved the .npy arrays with a somewhat wierd naming convention.
-# Thislead os.walk() to read things in a different order as compared to what it read in all_subject_dirs.
+# This lead os.walk() to read things in a different order as compared to what it read in all_subject_dirs.
 # ==============================================
 
 # ==============================================

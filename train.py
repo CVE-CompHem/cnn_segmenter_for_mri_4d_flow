@@ -1,7 +1,6 @@
 # ==================================================================
 # import 
 # ==================================================================
-import time
 import shutil
 import logging
 import os.path
@@ -95,11 +94,28 @@ def run_training(continue_run):
     logging.info('Shape of validation images: %s' %str(images_vl.shape))
     logging.info('Shape of validation labels: %s' %str(labels_vl.shape))
     logging.info('============================================================')
-        
+
+    # visualize some training images and their labels
+    visualize_images = False
+    if visualize_images is True:
+        for sub_tr in range(20):
+            utils.save_sample_image_and_labels_across_z(images_tr[sub_tr*32 : (sub_tr+1)*32, ...],
+                                                        labels_tr[sub_tr*32 : (sub_tr+1)*32, ...],
+                                                        log_dir + '/training_subject' + str(sub_tr))
+            utils.save_sample_image_and_labels_across_t(images_tr[sub_tr*32 : (sub_tr+1)*32, ...],
+                                                        labels_tr[sub_tr*32 : (sub_tr+1)*32, ...],
+                                                        log_dir + '/training_subject' + str(sub_tr))
+            
     # ================================================================
     # build the TF graph
     # ================================================================
     with tf.Graph().as_default():
+        
+        # ============================
+        # set random seed for reproducibility
+        # ============================
+        tf.random.set_random_seed(exp_config.run_number)
+        np.random.seed(exp_config.run_number)
 
         # ================================================================
         # create placeholders
@@ -109,7 +125,6 @@ def run_training(continue_run):
         label_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size)
         images_pl = tf.placeholder(tf.float32, shape=image_tensor_shape, name = 'images')
         labels_pl = tf.placeholder(tf.uint8, shape=label_tensor_shape, name = 'labels')
-        learning_rate_pl = tf.placeholder(tf.float32, shape=[], name = 'learning_rate')
         training_pl = tf.placeholder(tf.bool, shape=[], name = 'training_or_testing')
 
         # ================================================================
@@ -127,7 +142,10 @@ def run_training(continue_run):
                           labels_pl,
                           exp_config.nlabels,
                           loss_type = exp_config.loss_type)
+        
+        # ================================================================
         # Add the loss to tensorboard for visualizing its evolution as training proceeds
+        # ================================================================
         tf.summary.scalar('loss', loss)
 
         # ================================================================
@@ -135,7 +153,7 @@ def run_training(continue_run):
         # ================================================================
         train_op = model.training_step(loss,
                                        exp_config.optimizer_handle,
-                                       learning_rate_pl)
+                                       exp_config.learning_rate)
 
         # ================================================================
         # Add ops for model evaluation
@@ -231,23 +249,20 @@ def run_training(continue_run):
         # initialize counters
         # ================================================================        
         step = init_step
-        curr_lr = exp_config.learning_rate
         best_dice = 0
 
         # ================================================================
         # run training epochs
         # ================================================================
-        for epoch in range(exp_config.max_epochs):
+        while step < exp_config.max_steps:
 
             logging.info('============================================================')
-            logging.info('EPOCH %d' % epoch)
+            logging.info('Step %d' % step)
         
             for batch in iterate_minibatches(images_tr,
                                              labels_tr,
                                              batch_size = exp_config.batch_size):
                 
-                curr_lr = exp_config.learning_rate
-                start_time = time.time()
                 x, y = batch
 
                 # ===========================
@@ -257,20 +272,15 @@ def run_training(continue_run):
                              labels_pl: y,
                              learning_rate_pl: curr_lr,
                              training_pl: True}   
-
+                
                 _, loss_value = sess.run([train_op, loss], feed_dict=feed_dict)
-
-                # ===========================
-                # compute the time for this mini-batch computation
-                # ===========================
-                duration = time.time() - start_time
 
                 # ===========================
                 # write the summaries and print an overview fairly often
                 # ===========================
-                if step % exp_config.summary_writing_frequency == 0:
-                    logging.info('Step %d: loss = %.2f (%.3f sec for the last step)' % (step, loss_value, duration))
-                                   
+                if (step+1) % exp_config.summary_writing_frequency == 0:                    
+                    logging.info('Step %d: loss = %.2f' % (step+1, loss_value))                                   
+
                     # ===========================
                     # update the events file
                     # ===========================
@@ -427,7 +437,8 @@ def iterate_minibatches(images,
         # ===========================
         # augment the batch            
         # ===========================
-        # if np.random.random_sample() > 0.1: X,y = ad.aug_data(X,y)
+        if exp_config.da_ratio > 0.0:
+            X, y = utils.augment_data(X, y)
         
         yield X, y
 
