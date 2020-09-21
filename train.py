@@ -7,20 +7,13 @@ import logging
 import os.path
 import numpy as np
 import tensorflow as tf
-
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-
 import utils
 import model as model
 from config.system import config as sys_config
 import data_freiburg_numpy_to_hdf5
 # import augment_data_unet as ad
 
-# import warnings
-# warnings.filterwarnings('ignore', '.*output shape of zoom.*')
-
+# arguments
 from args import args
 
 # ==================================================================
@@ -154,7 +147,7 @@ def run_training(continue_run):
                                      loss_type = exp_config.loss_type)
 
         # ================================================================
-        # Build the summary Tensor based on the TF collection of Summaries.
+        # Build the summary Tensor based on the TF collection of Summaries
         # ================================================================
         summary = tf.summary.merge_all()
 
@@ -235,6 +228,7 @@ def run_training(continue_run):
             saver.restore(sess, init_checkpoint_path)
 
         # ================================================================
+        # initialize counters
         # ================================================================        
         step = init_step
         curr_lr = exp_config.learning_rate
@@ -262,7 +256,8 @@ def run_training(continue_run):
                 feed_dict = {images_pl: x,
                              labels_pl: y,
                              learning_rate_pl: curr_lr,
-                             training_pl: True}                
+                             training_pl: True}   
+
                 _, loss_value = sess.run([train_op, loss], feed_dict=feed_dict)
 
                 # ===========================
@@ -372,7 +367,9 @@ def do_eval(sess,
     dice_ii = 0
     num_batches = 0
 
-    for batch in iterate_minibatches(volumes, labels, batch_size=batch_size):
+    for batch in iterate_minibatches(volumes,
+                                     labels,
+                                     batch_size=batch_size):
         
         x, y = batch
         if y.shape[0] < batch_size:
@@ -464,8 +461,10 @@ def main():
         try:
             import pydevd_pycharm
             debug_server_hostname, debug_server_port = args.debug_server.split(':')
-            pydevd_pycharm.settrace(debug_server_hostname, port=int(debug_server_port), 
-                                    stdoutToServer=True, stderrToServer=True)
+            pydevd_pycharm.settrace(debug_server_hostname,
+                                    port=int(debug_server_port), 
+                                    stdoutToServer=True,
+                                    stderrToServer=True)
         except:
             logging.error("Import error for pydevd_pycharm ignored (should not be running debug version).")
 
