@@ -1,0 +1,9 @@
+{
+    "local_hostnames": [
+        "bmicdl05"
+    ],
+    "log_root": "/usr/bmicnas01/data-biwi-01/nkarani/students/nicolas/code/segmenter_cnn/logdir/v0.1/",
+    "orig_data_root": "/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/freiburg/main_data_transfer/126_subjects",
+    "project_code_root": "/usr/bmicnas01/data-biwi-01/nkarani/students/nicolas/code/segmenter_cnn",
+    "project_data_root": "/usr/bmicnas01/data-biwi-01/nkarani/students/nicolas/data/freiburg"
+}

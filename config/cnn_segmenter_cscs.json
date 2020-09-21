@@ -1,0 +1,9 @@
+{
+    "local_hostnames": [
+        "localhost"
+    ],
+    "log_root": "../../data/v0/segmenter/cnn_segmenter/logging/v0.1/",
+    "orig_data_root": "../../data/v0/mri_datasets/MRT Daten Bern/",
+    "project_code_root": "./",
+    "project_data_root": "../../data/v0/segmenter/cnn_segmenter/input_data/training/freiburg_subjects_with_nicolas_rw_segmentations/"
+}

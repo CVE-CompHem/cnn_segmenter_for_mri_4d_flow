@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 import os
 import pydicom as dicom
 import imageio
-import config.system as sys_config
+from config.system import config as sys_config
 
 # ================================================================
 # Load images
 # This function loads the dicom image series and converts it into a numpy array
 # ================================================================
-def read_dicom(pathDicom):
+def read_dicom(pathDicom, is_phase=False):
     
     # ================================
     # create a list of all dicom slices filenames
@@ -50,7 +50,22 @@ def read_dicom(pathDicom):
     # ================================
     unique_slice_locations = np.sort(np.unique(slice_locations))
     unique_acquisition_times = np.sort(np.unique(acquisition_times))
-    
+
+    if is_phase: # then unique_acquisition_times.shape[0] % 3 == 0:
+        phx_phy_acquisition_time_diff = np.array([float(f) for f in unique_acquisition_times[1::3]]) - \
+            np.array([float(f) for f in unique_acquisition_times[0::3]])
+        phy_phz_acquisition_time_diff = np.array([float(f) for f in unique_acquisition_times[2::3]]) - \
+            np.array([float(f) for f in unique_acquisition_times[1::3]])
+
+        for time_diff in phx_phy_acquisition_time_diff:
+            if np.abs(time_diff - 0.005) > 1e-10:
+                print("*** {} acquisition time diff (x-y): {}".format(pathDicom, time_diff))
+
+        for time_diff in phy_phz_acquisition_time_diff:
+            if np.abs(time_diff - 0.005) > 1e-10:
+                print("*** {} acquisition time diff (y-z): {}".format(pathDicom, time_diff))
+
+
     num_slices_per_volume = unique_slice_locations.shape[0]
     num_times_in_acquisition = unique_acquisition_times.shape[0]
 
@@ -197,9 +212,9 @@ for dir_name_this_subject_level0 in dir_names_level0:
             # ================================
             print('====================')
             print('Reading magnitude dicom series from: ' + magnitude_dir)
-            image_mag = read_dicom(magnitude_dir)
+            image_mag = read_dicom(magnitude_dir, is_phase=False)
             print('Reading phase dicom series from: ' + phase_dir)
-            image_pha = read_dicom(phase_dir)
+            image_pha = read_dicom(phase_dir, is_phase=True)
             image_phx = image_pha[:,:,:,0::3]
             image_phy = image_pha[:,:,:,1::3]
             image_phz = image_pha[:,:,:,2::3]

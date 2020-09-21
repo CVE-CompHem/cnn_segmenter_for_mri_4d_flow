@@ -1,43 +1,62 @@
 import model_zoo
 import tensorflow as tf
 
-# ======================================================================
-# brief description of this experiment
-# ======================================================================
-# ...
+from args import args
 
-# ======================================================================
-# Model settings
-# ======================================================================
-model_handle = model_zoo.segmentation_cnn
-run_number = 1
-da_ratio = 0.0
-experiment_name = 'unet3d_da_' + str(da_ratio) + '_r' + str(run_number)
+class ModelConfig:
+    pass
 
-# ======================================================================
-# data settings
-# ======================================================================
-data_mode = '3D'
-image_size = [144, 112, 48] # [x, y, time]
-nchannels = 4 # [intensity, vx, vy, vz]
-nlabels = 2 # [background, foreground]
+model_config = ModelConfig()
 
-# ======================================================================
-# training settings
-# ======================================================================
-max_steps = 10000
-batch_size = 8
-learning_rate = 1e-3
-optimizer_handle = tf.train.AdamOptimizer
-loss_type = 'dice'  # crossentropy/dice
-summary_writing_frequency = 20 # 4 times in each epoch (if n_tr_images=20, batch_size=8)
-train_eval_frequency = 500 # every 4 epochs (if n_tr_images=20, batch_size=8)
-val_eval_frequency = 500 # every 4 epochs (if n_tr_images=20, batch_size=8)
-save_frequency = 1000 # every 10 epochs (if n_tr_images=20, batch_size=8)
+import json
+with open(args.model, 'r') as f:
+    model_dict = json.load(f)
+    for k,v in model_dict.items():
+        setattr(model_config, k, v)
 
-continue_run = False
-debug = True
-augment_data = False
+def rec_getattr(obj, name):
+    names = name.split('.')
+    if isinstance(obj, dict):
+        ret = obj[names[0]]
+    else:
+        ret = getattr(obj, names[0])
+    for k in names[1:]:
+        ret = getattr(ret, k)
+    return ret
+
+model_config.model_handle = rec_getattr(model_zoo, model_config.model_handle)
+model_config.optimizer_handle = rec_getattr(locals(), model_config.optimizer_handle)
+
+# # ======================================================================
+# # Model settings
+# # ======================================================================
+# model_handle = model_zoo.segmentation_cnn
+# experiment_name = 'run3'
+#
+# # ======================================================================
+# # data settings
+# # ======================================================================
+# data_mode = '3D'
+# image_size = [144, 112, 48] # [x, y, time]
+# nchannels = 4 # [intensity, vx, vy, vz]
+# nlabels = 2 # [background, foreground]
+#
+# # ======================================================================
+# # training settings
+# # ======================================================================
+# max_epochs = 1000
+# batch_size = 8
+# learning_rate = 1e-3
+# optimizer_handle = tf.compat.v1.train.AdamOptimizer
+# loss_type = 'dice'  # crossentropy/dice
+# summary_writing_frequency = 20
+# train_eval_frequency = 320
+# val_eval_frequency = 320
+# save_frequency = 800
+#
+# continue_run = False
+# debug = True
+# augment_data = True
 
 # ======================================================================
 # test settings

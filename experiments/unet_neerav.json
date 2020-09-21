@@ -1,0 +1,28 @@
+{
+
+    "model_handle": "segmentation_cnn",
+    "experiment_name": "run3",
+
+    "data_mode": "3D",
+    "image_size": [
+        144,
+        112,
+        48
+    ], 
+    "nchannels": 4,
+    "nlabels": 2,
+
+    "max_epochs": 1000,
+    "batch_size": 8,
+    "learning_rate": 0.001,
+    "optimizer_handle": "tf.compat.v1.train.AdamOptimizer",
+    "loss_type": "dice",
+    "summary_writing_frequency": 20,
+    "train_eval_frequency": 320,
+    "val_eval_frequency": 320,
+    "save_frequency": 800,
+    
+    "continue_run": false,
+    "debug": true,
+    "augment_data": true
+}

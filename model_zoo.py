@@ -1,9 +1,8 @@
 import tensorflow as tf
 import logging
-from experiments import unet as exp_config
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-def segmentation_cnn(input_images, training): 
+def segmentation_cnn(input_images, training, exp_config):
     
     with tf.name_scope('segmenter'):
         
@@ -159,7 +158,7 @@ def segmentation_cnn(input_images, training):
 ## ======================================================================
 ## AE for RW aorta segmentation output correction
 ## ======================================================================
-def conv_autoencoder(volumes, training): 
+def conv_autoencoder(volumes, training, exp_config):
     
     with tf.name_scope('autoencoder'):
         # ========================================================

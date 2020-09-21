@@ -8,19 +8,31 @@ import numpy as np
 import tensorflow as tf
 import utils
 import model as model
-import config.system as sys_config
+from config.system import config as sys_config
 import data_freiburg_numpy_to_hdf5
+# import augment_data_unet as ad
+
+# arguments
+from args import args
 
 # ==================================================================
 # Set the config file of the experiment you want to run here:
 # ==================================================================
-from experiments import unet as exp_config
+from experiments.unet import model_config as exp_config
 
 # ==================================================================
 # setup logging
 # ==================================================================
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+
+if args.train is True and args.training_output is not None:
+    log_dir = args.training_output
+elif args.train is False and args.inference_output is not None:
+    log_dir = args.inference_output
+else:
+    log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+
+print('log_dir: ' + str(log_dir))
 logging.info('Logging directory: %s' %log_dir)
 
 # ==================================================================
@@ -37,7 +49,7 @@ def run_training(continue_run):
     # ============================
     # Initialize step number - this is number of mini-batch runs
     # ============================
-    init_step = 0
+    init_step = 1  # plus 1 as otherwise starts with eval
 
     # ============================
     # if continue_run is set to True, load the model parameters saved earlier
@@ -54,7 +66,7 @@ def run_training(continue_run):
         except:
             logging.warning('Did not find init checkpoint. Maybe first run failed. Disabling continue mode...')
             continue_run = False
-            init_step = 0
+            init_step = 1  # plus 1 as otherwise starts with eval
         logging.info('============================================================')
 
     # ============================
@@ -120,7 +132,8 @@ def run_training(continue_run):
         # ================================================================
         logits = model.inference(images_pl,
                                  exp_config.model_handle,
-                                 training_pl)
+                                 training_pl,
+                                 exp_config)
         
         # ================================================================
         # Add ops for calculation of the training loss
@@ -152,7 +165,7 @@ def run_training(continue_run):
                                      loss_type = exp_config.loss_type)
 
         # ================================================================
-        # Build the summary Tensor based on the TF collection of Summaries.
+        # Build the summary Tensor based on the TF collection of Summaries
         # ================================================================
         summary = tf.summary.merge_all()
 
@@ -233,6 +246,7 @@ def run_training(continue_run):
             saver.restore(sess, init_checkpoint_path)
 
         # ================================================================
+        # initialize counters
         # ================================================================        
         step = init_step
         best_dice = 0
@@ -256,7 +270,9 @@ def run_training(continue_run):
                 # ===========================
                 feed_dict = {images_pl: x,
                              labels_pl: y,
-                             training_pl: True}                
+                             learning_rate_pl: curr_lr,
+                             training_pl: True}   
+                
                 _, loss_value = sess.run([train_op, loss], feed_dict=feed_dict)
 
                 # ===========================
@@ -264,6 +280,7 @@ def run_training(continue_run):
                 # ===========================
                 if (step+1) % exp_config.summary_writing_frequency == 0:                    
                     logging.info('Step %d: loss = %.2f' % (step+1, loss_value))                                   
+
                     # ===========================
                     # update the events file
                     # ===========================
@@ -294,6 +311,7 @@ def run_training(continue_run):
                 # ===========================
                 if step % exp_config.save_frequency == 0:
 
+                    logging.info('Step %d: saving checkpoint' % (step))
                     checkpoint_file = os.path.join(log_dir, 'models/model.ckpt')
                     saver.save(sess, checkpoint_file, global_step=step)
 
@@ -359,7 +377,9 @@ def do_eval(sess,
     dice_ii = 0
     num_batches = 0
 
-    for batch in iterate_minibatches(volumes, labels, batch_size=batch_size):
+    for batch in iterate_minibatches(volumes,
+                                     labels,
+                                     batch_size=batch_size):
         
         x, y = batch
         if y.shape[0] < batch_size:
@@ -424,7 +444,7 @@ def iterate_minibatches(images,
 
 # ==================================================================
 # ==================================================================
-def main():
+def train():
     
     # ===========================
     # Create dir if it does not exist
@@ -438,13 +458,35 @@ def main():
     # ===========================
     # Copy experiment config file
     # ===========================
-    shutil.copy(exp_config.__file__, log_dir)
+    shutil.copy(args.model, log_dir) # exp_config.__file__
 
     # ===========================
     # run training
     # ===========================
     run_training(continue_run)
 
+# ==================================================================
+# ==================================================================
+def main():
+    if args.debug_server is not None:
+        try:
+            import pydevd_pycharm
+            debug_server_hostname, debug_server_port = args.debug_server.split(':')
+            pydevd_pycharm.settrace(debug_server_hostname,
+                                    port=int(debug_server_port), 
+                                    stdoutToServer=True,
+                                    stderrToServer=True)
+        except:
+            logging.error("Import error for pydevd_pycharm ignored (should not be running debug version).")
+
+    # ===========================
+    # Run training/inference as requested
+    # ===========================
+    if args.train is True:
+        train()
+    else:
+        import inference
+        inference.run_inference()
 
 # ==================================================================
 # ==================================================================
