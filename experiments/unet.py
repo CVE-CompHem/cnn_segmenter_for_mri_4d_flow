@@ -1,3 +1,4 @@
+import json
 import model_zoo
 import tensorflow as tf
 
@@ -8,7 +9,6 @@ class ModelConfig:
 
 model_config = ModelConfig()
 
-import json
 with open(args.model, 'r') as f:
     model_dict = json.load(f)
     for k,v in model_dict.items():

@@ -15,7 +15,7 @@
     "max_epochs": 1000,
     "batch_size": 8,
     "learning_rate": 0.001,
-    "optimizer_handle": "tf.compat.v1.train.AdamOptimizer",
+    "optimizer_handle": "tf.train.AdamOptimizer",
     "loss_type": "dice",
     "summary_writing_frequency": 20,
     "train_eval_frequency": 320,
