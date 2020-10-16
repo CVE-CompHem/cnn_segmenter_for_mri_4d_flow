@@ -133,7 +133,7 @@ def run_training(continue_run):
         logits = model.inference(images_pl,
                                  exp_config.model_handle,
                                  training_pl,
-                                 exp_config)
+                                 exp_config.nlabels)
         
         # ================================================================
         # Add ops for calculation of the training loss

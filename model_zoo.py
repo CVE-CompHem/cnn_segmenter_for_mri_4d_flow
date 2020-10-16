@@ -2,7 +2,7 @@ import tensorflow as tf
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-def segmentation_cnn(input_images, training, exp_config):
+def segmentation_cnn(input_images, training, nlabels):
     
     with tf.name_scope('segmenter'):
         
@@ -124,7 +124,7 @@ def segmentation_cnn(input_images, training, exp_config):
         # ====================================
         # Final conv layer - without batch normalization or activation
         # ====================================
-        logits = tf.layers.Conv3D(filters=exp_config.nlabels, kernel_size=(3,3,3), padding='same')(conv9_2)
+        logits = tf.layers.Conv3D(filters=nlabels, kernel_size=(3,3,3), padding='same')(conv9_2)
         
         # ====================================
         # print shapes at various layers in the network

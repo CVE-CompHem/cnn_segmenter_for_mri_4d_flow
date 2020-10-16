@@ -165,19 +165,17 @@ def run_inference():
                 # add initializer Ops
                 # ====================================
                 logging.info('Adding the op to initialize variables...')
-                init_g = tf.global_variables_initializer()
-                init_l = tf.local_variables_initializer()
+                init_ops = tf.global_variables_initializer()
         
-                # ================================================================
+                # ====================================
                 # Create session
-                # ================================================================
+                # ====================================
                 sess = tf.Session()    
                         
                 # ====================================
                 # Initialize
                 # ====================================
-                sess.run(init_g)
-                sess.run(init_l)
+                sess.run(init_ops)
         
                 # ====================================
                 # Restore trained segmentation model
