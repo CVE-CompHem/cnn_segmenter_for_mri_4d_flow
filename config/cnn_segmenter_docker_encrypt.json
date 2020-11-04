@@ -1,0 +1,8 @@
+{
+    "local_hostnames": [
+        "localhost"
+    ],
+    "orig_data_root": "/hpc-predict-data/input_data/original/mri/MRT Daten Bern/",
+    "project_code_root": "/src/hpc-predict/segmenter/cnn_segmenter_for_mri_4d_flow/",
+    "project_data_root": "/hpc-predict-data/decrypt/segmenter/random_walker_segmenter/hpc_predict/v1/2020-04-30_18-36-47_neerav/freiburg_subjects_with_nicolas_rw_segmentations/"
+}
