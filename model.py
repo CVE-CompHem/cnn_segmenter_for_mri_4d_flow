@@ -18,7 +18,8 @@ def inference(images,
 # ================================================================
 # ================================================================
 def predict(images,
-            model_handle):
+            model_handle,
+            nlabels):
     '''
     Returns the prediction for an image given a network from the model zoo
     :param volumes: An input volume tensor
@@ -26,7 +27,7 @@ def predict(images,
     :return: A prediction mask, and the corresponding softmax output
     '''
 
-    logits = model_handle(images, training = tf.constant(False, dtype=tf.bool))
+    logits = model_handle(images, training = tf.constant(False, dtype=tf.bool), nlabels = nlabels)
     softmax = tf.nn.softmax(logits)
     prediction = tf.argmax(softmax, axis=-1)
 

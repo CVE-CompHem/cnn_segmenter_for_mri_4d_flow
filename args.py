@@ -13,12 +13,12 @@ def parse_args():
     parser.add_argument('--model', type=str, default='experiments/unet_neerav.json', help='Directory containing model configuration')
 
     # training arguments
-    parser.add_argument('--training-input', type=str, help='Training input directory (for training only)')
-    parser.add_argument('--training-output', type=str, help='Training output directory (for training only)')
+    parser.add_argument('--training_input', type=str, help='Training input directory (for training only)')
+    parser.add_argument('--training_output', type=str, help='Training output directory (for training only)')
 
     # inference arguments
-    parser.add_argument('--inference-input', type=str, help='Input FlowMRI (for inference only)')
-    parser.add_argument('--inference-output', type=str, help='Output SegmentedFlowMRI (for inference only)')
+    parser.add_argument('--inference_input', type=str, help='Input FlowMRI (for inference only)')
+    parser.add_argument('--inference_output', type=str, help='Output SegmentedFlowMRI (for inference only)')
 
     # debug arguments
     parser.add_argument('--debug_server', type=str, help='Socket address (hostname:port) of Pycharm debug server')
