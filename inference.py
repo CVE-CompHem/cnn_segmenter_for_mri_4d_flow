@@ -1,50 +1,76 @@
 # ==================================================================
-# import 
+# import python modules
 # ==================================================================
-import time
-import shutil
-import logging
-import os.path
+import os, sys
 import numpy as np
 import tensorflow as tf
-
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-
-import utils
-import model as model
-from config.system import config as sys_config
-import data_freiburg_numpy_to_hdf5
-# import augment_data_unet as ad
-
-# import warnings
-# warnings.filterwarnings('ignore', '.*output shape of zoom.*')
-
+from skimage.transform import resize
 from args import args
 
-from mr_io import FlowMRI, SegmentedFlowMRI
-from scipy.interpolate import RegularGridInterpolator
+# ==================================================================
+# import other modules written within the segmenter project
+# ==================================================================
+import model as model
 
 # ==================================================================
-# Set the config file of the experiment you want to run here:
+# import experiment settings
 # ==================================================================
 from experiments.unet import model_config as exp_config
 
 # ==================================================================
-# setup logging
+# import paths
 # ==================================================================
+# Some fixed paths can be read from here, if required.
+# The paths read here are set in the file given in args.config
+# Particularly, the path of the saved model can be read from here.
+# Right now, it is read from the file path set in args.training_output
+# ==================================================================
+# from config.system import config as sys_config 
+
+# ==================================================================
+# needed these while importing data using the data loading scripts written by CVL
+# Now, using data loading I/O interface written by CSCS
+# ==================================================================
+# import data_freiburg_numpy_to_hdf5
+# import data_flownet
+
+# ==================================================================
+# import general modules written by cscs for the hpc-predict project
+# ==================================================================
+# question: how to import from a directory several layers above the current one?
+# for now, adding the path of the hpc-predict-io/python/ directory to sys.path
+# ==================================================================
+current_dir_path = os.getcwd()
+mr_io_dir_path = current_dir_path[:-39] + 'hpc-predict-io/python/'
+sys.path.append(mr_io_dir_path)
+from mr_io import FlowMRI, SegmentedFlowMRI
+from scipy.interpolate import RegularGridInterpolator
+
+# ==================================================================
+# import and setup logging
+# ==================================================================
+import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-if args.train is True and args.training_output is not None:
-    log_dir = args.training_output
-elif args.train is False and args.inference_output is not None:
-    log_dir = args.inference_output
-else:
-    log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
-
-print('log_dir: ' + str(log_dir))
-logging.info('Logging directory: %s' %log_dir)
+# ============================================================================
+# input: image with shape  ---> [nz, nx, ny, nt, 4]
+# output: segmentation probability of the aorta with shape  ---> [nz, nx, ny, nt]
+# ============================================================================
+def get_segmentation_probability(test_image,
+                                 images_pl,
+                                 seg_prob_op,
+                                 sess):
+        
+    # create an empty array to store the predicted segmentation probabilities
+    predicted_seg_prob_aorta = np.zeros((test_image.shape[:-1]))
+    
+    # predict the segmentation one zz slice at a time
+    for zz in range(test_image.shape[0]):
+        predicted_seg_prob = sess.run(seg_prob_op, feed_dict = {images_pl: test_image[zz:zz+1, ...]})
+        predicted_seg_prob = np.squeeze(predicted_seg_prob)
+        predicted_seg_prob_aorta[zz:zz+1,...] = predicted_seg_prob[:, :, :, 1]
+        
+    return predicted_seg_prob_aorta
 
 # ==================================================================
 # main function for inference
@@ -55,130 +81,78 @@ def run_inference():
     # log experiment details
     # ============================
     logging.info('============================================================')
-    logging.info('EXPERIMENT NAME: %s' % exp_config.experiment_name)
+    logging.info('================ EXPERIMENT NAME: %s ================' % exp_config.experiment_name)
+    logging.info('================ Predicting segmentation for this image: %s ================' % args.inference_input)
 
     # ============================
-    # Initialize step number - this is number of mini-batch runs
+    # load saved checkpoint file, if available
     # ============================
-    init_step = 0
+    logging.info('================ Looking for saved segmentation model... ')
+    logging.info('args.training_output: ' + args.training_output  + exp_config.experiment_name)
+    if os.path.exists(args.training_output + exp_config.experiment_name + '/models/best_dice.ckpt.index'):
+        best_dice_checkpoint_path = args.training_output + exp_config.experiment_name + '/models/best_dice.ckpt.index'
+        logging.info('Found saved model at %s. This will be used for predicted the segmentation.' % best_dice_checkpoint_path)
+    else:
+        logging.warning('Did not find a saved model. First need to run training successfully...')
+        raise RuntimeError('No checkpoint available to restore from!')
 
-    # ============================
-    # Find checkpoint file
-    # ============================
-    logging.info('============================================================')
-    logging.info('Looking for checkpoint file')
-    try:
-        if os.path.exists(os.path.join(args.training_output,'models/best_dice.ckpt')):
-            init_checkpoint_path = os.path.join(args.training_output, 'models/best_dice.ckpt')
-            logging.info('============================================================')
-            logging.info('Found best average dice checkpoint - restoring session from %s.' % init_checkpoint_path)
-        else:
-            init_checkpoint_path = utils.get_latest_model_checkpoint_path(args.training_output, 'models/model.ckpt')
-            logging.info('Checkpoint path: %s' % init_checkpoint_path)
-            init_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1]) + 1  # plus 1 as otherwise starts with eval
-            logging.info('Latest step was: %d' % init_step)
-    except:
-        logging.warning('Did not find init checkpoint. First need to run training successfully...')
-        raise RuntimeError('No checkpoint to restore from available!')
-    logging.info('============================================================')
-
-    # ============================
-    # Load data
     # ============================   
-    # logging.info('============================================================')
-    # logging.info('Loading training data from: ' + sys_config.project_data_root)
-    # data_tr = data_freiburg_numpy_to_hdf5.load_data(basepath = sys_config.project_data_root,
-    #                                                 idx_start = 0,
-    #                                                 idx_end = 19,
-    #                                                 train_test='train')
-    # images_tr = data_tr['images_train']
-    # labels_tr = data_tr['labels_train']
-    # logging.info('Shape of training images: %s' %str(images_tr.shape)) # expected: [img_size_z*num_images, img_size_x, vol_size_y, img_size_t, n_channels]
-    # logging.info('Shape of training labels: %s' %str(labels_tr.shape)) # expected: [img_size_z*num_images, img_size_x, vol_size_y, img_size_t]
-
-    # Loading data from an hpc-predict-io MRI
-    logging.info('============================================================')
-    logging.info('Loading input FlowMRI from: ' + args.inference_input)
+    # Loading data (a FlowMRI object written by Flownet and in the filename given by inference_input)
+    # ============================   
+    logging.info('================ Loading input FlowMRI from: ' + args.inference_input)
     flow_mri = FlowMRI.read_hdf5(args.inference_input)
-    logging.info('============================================================')
+    logging.info('shape of input intensity: ' + str(flow_mri.intensity.shape))
+    logging.info('shape of velocity mean: ' + str(flow_mri.velocity_mean.shape))
 
-    images_tr = np.concatenate([np.expand_dims(flow_mri.intensity,-1), flow_mri.velocity_mean], axis=-1).transpose([3,0,1,2,4])
-    images_tr_preprocessed = np.zeros((images_tr.shape[0],*exp_config.image_size,images_tr.shape[-1]))
-    # TODO: exact coordinate transformation
+    # ============================
+    # Extracting the image information required for the segmentation cnn
+    # ============================
+    test_image = np.concatenate([np.expand_dims(flow_mri.intensity, -1), flow_mri.velocity_mean], axis=-1)    
+    # ============================
+    # Move the axes around so that we have [nz, nx, ny, nt, num_channels]
+    # TODO: Check if the data orientation is similiar to what the CNN was trained on
+    # ============================
+    test_image = test_image.transpose([3, 0, 1, 2, 4])
+    logging.info('shape of the test image before resampling: ' + str(test_image.shape))
 
-    np.array(np.meshgrid([0,1],[2,3],indexing='ij')).transpose([1,2,0])
-    target_points = np.array(np.meshgrid(
-                    np.linspace(flow_mri.geometry[0][0], flow_mri.geometry[0][-1], exp_config.image_size[0]),
-                    np.linspace(flow_mri.geometry[1][0], flow_mri.geometry[1][-1], exp_config.image_size[1]),
-                    np.linspace(flow_mri.geometry[2][0], flow_mri.geometry[2][-1], exp_config.image_size[2]),
-        indexing='ij')).transpose([1,2,3,0])
-    for t in range(images_tr.shape[0]):
-        for v in range(images_tr.shape[-1]):
-            rgi = RegularGridInterpolator(tuple(flow_mri.geometry), images_tr[t,...,v])
-            images_tr_preprocessed[t,...,v] = rgi(target_points)
-    images_tr = images_tr_preprocessed
-    del images_tr_preprocessed
+    # ============================
+    # Resample the image, so that we have the same shape as the one for which the CNN was trained (exp_config.image_size).
+    # TODO: Instead of changing the resolution directly to match the sizes,
+    # bring the test images to the resolution of the training images,
+    # and then pad with zeros or crop.
+    # ============================
+    test_image_resampled = np.zeros((test_image.shape[0], *exp_config.image_size, test_image.shape[-1])) 
+    target_points = np.array(np.meshgrid(np.linspace(flow_mri.geometry[0][0], flow_mri.geometry[0][-1], exp_config.image_size[0]),
+                                         np.linspace(flow_mri.geometry[1][0], flow_mri.geometry[1][-1], exp_config.image_size[1]),
+                                         np.linspace(flow_mri.geometry[2][0], flow_mri.geometry[2][-1], exp_config.image_size[2]),
+                                         indexing='ij')).transpose([1,2,3,0])
+    logging.info('initial target points: ' + str(target_points.shape))
 
-    logging.info('Shape of training images: %s' %str(images_tr.shape)) # expected: [img_size_z*num_images, img_size_x, vol_size_y, img_size_t, n_channels]
-    images_tr_seg_logits = np.zeros(shape=(*images_tr.shape[:-1],exp_config.nlabels))
-
-    logging.info('============================================================')
+    for t in range(test_image.shape[0]):
+        for v in range(test_image.shape[-1]):
+            rgi = RegularGridInterpolator(points = tuple(flow_mri.geometry), values = test_image[t, ..., v])
+            test_image_resampled[t,...,v] = rgi(target_points)
+    logging.info('shape of image after resampling: ' + str(test_image_resampled.shape))
         
-    # ================================================================
+    # ============================
     # build the TF graph
-    # ================================================================
+    # ============================
     with tf.Graph().as_default():
 
-        # ================================================================
+        # ============================
         # create placeholders
-        # ================================================================
-        logging.info('Creating placeholders...')
-        image_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.nchannels]
-        # label_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size)
+        # ============================
+        logging.info('================ Creating placeholders... ================')
+        image_tensor_shape = [None] + list(exp_config.image_size) + [exp_config.nchannels]
         images_pl = tf.placeholder(tf.float32, shape=image_tensor_shape, name = 'images')
-        # labels_pl = tf.placeholder(tf.uint8, shape=label_tensor_shape, name = 'labels')
-        # learning_rate_pl = tf.placeholder(tf.float32, shape=[], name = 'learning_rate')
-        training_pl = tf.placeholder(tf.bool, shape=[], name = 'training_or_testing')
 
-        # ================================================================
-        # Build the graph that computes predictions from the inference model
-        # ================================================================
-        logits = model.inference(images_pl,
-                                 exp_config.model_handle,
-                                 training_pl,
-                                 exp_config)
-        # seg_probs = tf.nn.softmax(logits)
-
-        # # ================================================================
-        # # Add ops for calculation of the training loss
-        # # ================================================================
-        # loss = model.loss(logits,
-        #                   labels_pl,
-        #                   exp_config.nlabels,
-        #                   loss_type = exp_config.loss_type)
-        # # Add the loss to tensorboard for visualizing its evolution as training proceeds
-        # tf.summary.scalar('loss', loss)
-        #
-        # # ================================================================
-        # # Add optimization ops
-        # # ================================================================
-        # train_op = model.training_step(loss,
-        #                                exp_config.optimizer_handle,
-        #                                learning_rate_pl)
-        #
-        # # ================================================================
-        # # Add ops for model evaluation
-        # # ================================================================
-        # eval_loss = model.evaluation(logits,
-        #                              labels_pl,
-        #                              images_pl,
-        #                              nlabels = exp_config.nlabels,
-        #                              loss_type = exp_config.loss_type)
-
-        # ================================================================
-        # Build the summary Tensor based on the TF collection of Summaries.
-        # ================================================================
-        summary = tf.summary.merge_all()
+        # ============================
+        # build the graph that computes predictions from the segmentation cnn
+        # ============================
+        seg_logits, seg_softmax, seg_prediction = model.predict(images = images_pl,
+                                                                model_handle = exp_config.model_handle,
+                                                                nlabels = exp_config.nlabels)
+        logging.info('model built')
 
         # ================================================================
         # Add init ops
@@ -186,17 +160,9 @@ def run_inference():
         init_op = tf.global_variables_initializer()
         
         # ================================================================
-        # Find if any vars are uninitialized
+        # create a saver that can be used to load the weights of the trained CNN
         # ================================================================
-        logging.info('Adding the op to get a list of initialized variables...')
-        uninit_vars = tf.report_uninitialized_variables()
-
-        # ================================================================
-        # create savers for each domain
-        # ================================================================
-        max_to_keep = 15
-        saver = tf.train.Saver(max_to_keep = max_to_keep)
-        # saver_best_dice = tf.train.Saver()
+        saver_best_dice = tf.train.Saver()
 
         # ================================================================
         # Create session
@@ -204,173 +170,77 @@ def run_inference():
         sess = tf.Session()
 
         # ================================================================
-        # create a summary writer
-        # ================================================================
-        summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
-        
-        # # ================================================================
-        # # summaries of the validation errors
-        # # ================================================================
-        # vl_error = tf.placeholder(tf.float32, shape=[], name='vl_error')
-        # vl_error_summary = tf.summary.scalar('validation/loss', vl_error)
-        # vl_dice = tf.placeholder(tf.float32, shape=[], name='vl_dice')
-        # vl_dice_summary = tf.summary.scalar('validation/dice', vl_dice)
-        # vl_summary = tf.summary.merge([vl_error_summary, vl_dice_summary])
-        #
-        # # ================================================================
-        # # summaries of the training errors
-        # # ================================================================
-        # tr_error = tf.placeholder(tf.float32, shape=[], name='tr_error')
-        # tr_error_summary = tf.summary.scalar('training/loss', tr_error)
-        # tr_dice = tf.placeholder(tf.float32, shape=[], name='tr_dice')
-        # tr_dice_summary = tf.summary.scalar('training/dice', tr_dice)
-        # tr_summary = tf.summary.merge([tr_error_summary, tr_dice_summary])
-
-        # ================================================================
         # freeze the graph before execution
         # ================================================================
-        logging.info('Freezing the graph now!')
+        logging.info('================ Freezing the graph now! ================')
         tf.get_default_graph().finalize()
 
         # ================================================================
         # Run the Op to initialize the variables.
         # ================================================================
-        logging.info('============================================================')
-        logging.info('initializing all variables...')
+        logging.info('================ Initializing all variables ================')
         sess.run(init_op)
         
         # ================================================================
-        # print names of uninitialized variables
-        # ================================================================
-        logging.info('============================================================')
-        logging.info('This is the list of uninitialized variables:' )
-        uninit_variables = sess.run(uninit_vars)
-        for v in uninit_variables: print(v)
-
-        # ================================================================
         # Restore session from a saved checkpoint
         # ================================================================
-        # Restore session
-        logging.info('============================================================')
-        logging.info('No best dice checkpoint found - restoring session from: %s' % init_checkpoint_path)
-        saver.restore(sess, init_checkpoint_path)
+        logging.info('================ Restoring session from: %s ================' % best_dice_checkpoint_path)
+        # TODO: Ensure that the saved model is compatible with the model built here.
+        # saver_best_dice.restore(sess, best_dice_checkpoint_path)
+
+        # ============================
+        # predict the segmentation probability for the image
+        # ============================
+        test_image_seg_prob_resampled = get_segmentation_probability(test_image = test_image_resampled,
+                                                                     images_pl = images_pl,
+                                                                     seg_prob_op = seg_softmax,
+                                                                     sess = sess)
+        logging.info('shape of predicted segmentation before resampling: ' + str(test_image_seg_prob_resampled.shape))
 
         # ================================================================
-        # ================================================================        
-        step = init_step
-        # curr_lr = exp_config.learning_rate
-        # best_dice = 0
-
+        # resample the predicted segmentation back to the original shape
         # ================================================================
-        # run training epochs
-        # ================================================================
-
-        for batch_indices, batch in iterate_minibatches(images_tr, # TODO: modify for batch_size != 1
-                                         batch_size = exp_config.batch_size):
-
-            # curr_lr = exp_config.learning_rate
-            start_time = time.time()
-            x = batch
-
-            # ===========================
-            # run training iteration
-            # ===========================
-            feed_dict = {images_pl: x,
-                         training_pl: False}
-            seg_logits_values = sess.run([logits], feed_dict=feed_dict)
-            images_tr_seg_logits[batch_indices, ...] = seg_logits_values[0][...]
-
-            # ===========================
-            # compute the time for this mini-batch computation
-            # ===========================
-            duration = time.time() - start_time
-
-            # ===========================
-            # write the summaries and print an overview fairly often
-            # ===========================
-            if (step+1) % exp_config.summary_writing_frequency == 0:
-                logging.info('Step %d: (%.3f sec for the last step)' % (step+1, duration))
-
-                # ===========================
-                # update the events file
-                # ===========================
-                summary_str = sess.run(summary, feed_dict=feed_dict)
-                summary_writer.add_summary(summary_str, step)
-                summary_writer.flush()
-
-            step += 1
-                
-        sess.close()
-
-        target_points = np.array(np.meshgrid(*flow_mri.geometry,
-            indexing='ij')).transpose([1, 2, 3, 0])
-        images_tr_seg_probs_mri = np.zeros((flow_mri.intensity.shape[3],*flow_mri.intensity.shape[:3]))
-        images_tr_seg_logits_mri = np.zeros((*flow_mri.intensity.shape[:3], exp_config.nlabels))
-
-        with tf.Graph().as_default():
-            # ================================================================
-            # freeze the graph before execution
-            # ================================================================
-            logging.info('Unfreezing the graph now!')
-            tf.get_default_graph()._unsafe_unfinalize()
-
-            logits_tensor_shape = list(flow_mri.intensity.shape[:3]) + [exp_config.nlabels]
-            logits_pl = tf.placeholder(tf.float32, shape=logits_tensor_shape)
-            seg_probs = tf.nn.softmax(logits_pl)
-
-            with tf.Session() as sess:
-                for t in range(images_tr_seg_logits.shape[0]):
-                    for v in range(images_tr_seg_logits.shape[-1]):
-                        rgi = RegularGridInterpolator(
-                        ( np.linspace(flow_mri.geometry[0][0], flow_mri.geometry[0][-1], exp_config.image_size[0]),
-                          np.linspace(flow_mri.geometry[1][0], flow_mri.geometry[1][-1], exp_config.image_size[1]),
-                          np.linspace(flow_mri.geometry[2][0], flow_mri.geometry[2][-1], exp_config.image_size[2]) ),
-                        images_tr_seg_logits[t, ..., v])
-                        images_tr_seg_logits_mri[...,v] = rgi(target_points)
-                    images_tr_seg_probs_mri[t, ...] = sess.run(seg_probs, feed_dict={logits_pl: images_tr_seg_logits_mri})[...,0]
-            images_tr_seg_probs = images_tr_seg_probs_mri
-            del images_tr_seg_probs_mri
-
-        logging.info('============================================================')
-        inference_output_file = os.path.join(args.inference_output,
-                                             os.path.basename(args.inference_input)[:-3] + '_cnn_segmented.h5')
-        logging.info('Writing SegmentedFlowMRI to: ' + inference_output_file)
-        segmented_flow_mri = SegmentedFlowMRI(
-            flow_mri.geometry,
-            flow_mri.time,
-            flow_mri.time_heart_cycle_period,
-            flow_mri.intensity,
-            flow_mri.velocity_mean,
-            flow_mri.velocity_cov,
-            images_tr_seg_probs.transpose([1,2,3,0])[...])
-        segmented_flow_mri.write_hdf5(inference_output_file)
-        logging.info('============================================================')
-
-# ==================================================================
-# ==================================================================
-def iterate_minibatches(images,
-                        batch_size):
-    '''
-    Function to create mini batches from the dataset of a certain batch size 
-    :param images: numpy dataset
-    :param batch_size: batch size
-    :return: mini batches
-    '''
-
-    # ===========================
-    # generate indices to randomly select slices in each minibatch
-    # ===========================
-    n_images = images.shape[0]
-
-    # ===========================
-    # using only a fraction of the batches in each epoch
-    # ===========================
-    for b_i in range(0, n_images, batch_size):
+        test_image_seg_prob = np.zeros((flow_mri.intensity.shape[3], *flow_mri.intensity.shape[:3]))
+        for zz in range(test_image_seg_prob_resampled.shape[0]):
+            test_image_seg_prob[zz, ...] = resize(image = test_image_seg_prob_resampled[zz, ...],
+                                                  output_shape = [test_image.shape[1], test_image.shape[2], test_image.shape[3]],
+                                                  order = 1,
+                                                  preserve_range = True,
+                                                  anti_aliasing = True)
+        logging.info('shape of predicted segmentation after resampling back to the original resolution: ' + str(test_image_seg_prob.shape))
         
-        # HDF5 requires indices to be in increasing order
-        batch_indices = np.arange(b_i,np.min([b_i+batch_size,n_images]))
+        # ================================================================
+        # Reorder the axes to match that of the original data
+        # ================================================================
+        test_image_seg_prob = test_image_seg_prob.transpose([1, 2, 3, 0])
+        logging.info('shape of predicted segmentation after resampling back to the original resolution: ' + str(test_image_seg_prob.shape))
 
-        X = images[batch_indices, ...]
+        # ============================
+        # create an instance of the SegmentedFlowMRI class, with the image information from flow_mri as well as the predicted segmentation probabilities
+        # ============================
+        segmented_flow_mri = SegmentedFlowMRI(flow_mri.geometry,
+                                              flow_mri.time,
+                                              flow_mri.time_heart_cycle_period,
+                                              flow_mri.intensity,
+                                              flow_mri.velocity_mean,
+                                              flow_mri.velocity_cov,
+                                              test_image_seg_prob)
 
-        yield batch_indices, X
+        # ============================
+        # write SegmentedFlowMRI to file
+        # ============================
+        logging.info('================ Writing SegmentedFlowMRI to: ' + args.inference_output)
+        segmented_flow_mri.write_hdf5(args.inference_output)
+        logging.info('============================================================')
 
+# ==================================================================
+# ==================================================================
+def main():
+    
+    run_inference()
+
+# ==================================================================
+# ==================================================================
+if __name__ == '__main__':
+    main()
+    

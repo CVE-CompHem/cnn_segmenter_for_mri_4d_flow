@@ -10,7 +10,6 @@ import utils
 import model as model
 from config.system import config as sys_config
 import data_freiburg_numpy_to_hdf5
-# import augment_data_unet as ad
 
 # arguments
 from args import args

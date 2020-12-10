@@ -2,18 +2,6 @@ import os
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-# import argparse
-#
-# # Parse data input and output directories
-# def parse_args():
-#     # Parse arguments
-#     parser = argparse.ArgumentParser(description='Run CNN Segmenter for 4D MRI.')
-#     parser.add_argument('--config', type=str, default='config/cnn_segmenter_cscs.json', # default='system/cnn_segmenter_neerav.json',
-#                     help='Directory containing MRI data set')
-#     return parser.parse_args()
-#
-# args = parse_args()
-
 from args import args
 
 class Config:

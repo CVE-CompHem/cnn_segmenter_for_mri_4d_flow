@@ -16,6 +16,7 @@ model_config = ModelConfig()
 
 # ==========================================
 # In this instace, add all attributes from the configuration set in the .json file specified in args.model
+# The name of the json file containing all the parameters is to be set in "args.model"
 # ==========================================
 with open(args.model, 'r') as f:
     model_dict = json.load(f)
@@ -79,8 +80,8 @@ model_config.optimizer_handle = rec_getattr(locals(), model_config.optimizer_han
 # test settings
 # ======================================================================
 # iteration number to be loaded after training the model (setting this to zero will load the model with the best validation dice score)
-#load_this_iter = 0
-#batch_size_test = 4
-#save_qualitative_results = True
-#save_results_subscript = 'initial_training_unet'
-#save_inference_result_subscript = 'inference_out_unet'
+# load_this_iter = 0
+# batch_size_test = 4
+# save_qualitative_results = True
+# save_results_subscript = 'initial_training_unet'
+# save_inference_result_subscript = 'inference_out_unet'
