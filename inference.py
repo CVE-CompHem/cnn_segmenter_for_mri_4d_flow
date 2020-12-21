@@ -88,9 +88,9 @@ def run_inference():
     # load saved checkpoint file, if available
     # ============================
     logging.info('================ Looking for saved segmentation model... ')
-    logging.info('args.training_output: ' + args.training_output  + exp_config.experiment_name)
-    if os.path.exists(args.training_output + exp_config.experiment_name + '/models/best_dice.ckpt.index'):
-        best_dice_checkpoint_path = args.training_output + exp_config.experiment_name + '/models/best_dice.ckpt.index'
+    logging.info('args.training_output: ' + args.training_output  + exp_config.experiment_name + '/models/best_dice.ckpt-20000.index')
+    if os.path.exists(args.training_output + exp_config.experiment_name + '/models/best_dice.ckpt-20000.index'):
+        best_dice_checkpoint_path = args.training_output + exp_config.experiment_name + '/models/best_dice.ckpt-20000.index'
         logging.info('Found saved model at %s. This will be used for predicted the segmentation.' % best_dice_checkpoint_path)
     else:
         logging.warning('Did not find a saved model. First need to run training successfully...')
@@ -157,17 +157,25 @@ def run_inference():
         # ================================================================
         # Add init ops
         # ================================================================
-        init_op = tf.global_variables_initializer()
+        init_op = tf.compat.v1.global_variables_initializer()
+        
+        # ================================================================
+        # Make list of all trainable variables
+        # ================================================================
+        train_vars_list = []
+        for v in tf.compat.v1.trainable_variables():
+            train_vars_list.append(v)            
+            print(v.name)
         
         # ================================================================
         # create a saver that can be used to load the weights of the trained CNN
         # ================================================================
-        saver_best_dice = tf.train.Saver()
+        saver_best_dice = tf.compat.v1.train.Saver(var_list = train_vars_list)
 
         # ================================================================
         # Create session
         # ================================================================
-        sess = tf.Session()
+        sess = tf.compat.v1.Session()
 
         # ================================================================
         # freeze the graph before execution
@@ -186,7 +194,7 @@ def run_inference():
         # ================================================================
         logging.info('================ Restoring session from: %s ================' % best_dice_checkpoint_path)
         # TODO: Ensure that the saved model is compatible with the model built here.
-        # saver_best_dice.restore(sess, best_dice_checkpoint_path)
+        # saver_best_dice.restore(sess, best_dice_checkpoint_path)       
 
         # ============================
         # predict the segmentation probability for the image
@@ -243,4 +251,3 @@ def main():
 # ==================================================================
 if __name__ == '__main__':
     main()
-    
