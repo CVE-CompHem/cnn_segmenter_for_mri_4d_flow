@@ -12,7 +12,7 @@
     "nchannels": 4,
     "nlabels": 2,
 
-    "max_iterations": 1001,
+    "max_iterations": 2001,
     "batch_size": 8,
     "learning_rate": 0.001,
     "da_ratio": 0.0,

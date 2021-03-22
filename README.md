@@ -12,7 +12,7 @@ Steps for running the training on the Flownet images:
 To run training source the Python virtualenv in the random walker repository and run the following command e.g.
 
 ```
-python train.py --train --config config/cnn_segmenter_cscs.json --model experiments/unet_cscs.json
+python train.py --config config/cnn_segmenter_cscs.json --model experiments/unet_cscs.json --training_input <path to hdf5 file containing the training data> --training_output <path of the dir where the training CNN model should be saved>
 ```
 
 to run inference using the same configuration simply replace `train` by `inference`:
