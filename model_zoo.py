@@ -4,9 +4,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
 def segmentation_cnn(input_images, # a batch of input images
                      training, # a bool indicating whether we are training or testing (affects the BN layer)
-                     nlabels): # number of channels in the output 
+                     nlabels,
+                     use_bn = False): # number of channels in the output 
     
-    with tf.name_scope('segmenter'):
+    with tf.variable_scope('segmenter'):
         
         n0 = 8
                 

@@ -13,7 +13,7 @@
 #SBATCH  --priority='TOP'
 
 # activate virtual environment
-source /usr/bmicnas01/data-biwi-01/nkarani/softwares/anaconda/installation_dir/bin/activate tf_v1_12
+source /usr/bmicnas01/data-biwi-01/nkarani/softwares/anaconda/installation_dir/bin/activate tf_v1_15
 
 ## EXECUTION OF PYTHON CODE:
 python /usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/code/code/hpc-predict/segmenter/cnn_segmenter_for_mri_4d_flow/train.py \
