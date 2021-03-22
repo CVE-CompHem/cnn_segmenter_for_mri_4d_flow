@@ -298,3 +298,15 @@ def crop_or_pad_4dvol_along_3(vol, n):
         vol_cropped = np.zeros((vol.shape[0], vol.shape[1], vol.shape[2], n, vol.shape[4]))
         vol_cropped[:, :, :, x_c:x_c + x, :] = vol
     return vol_cropped
+
+# ==================================================================
+# crop or pad functions to change image size without changing resolution
+# ==================================================================    
+def crop_or_pad_4dvol(vol, target_size):
+    
+    vol = crop_or_pad_4dvol_along_0(vol, target_size[0])
+    vol = crop_or_pad_4dvol_along_1(vol, target_size[1])
+    vol = crop_or_pad_4dvol_along_2(vol, target_size[2])
+    vol = crop_or_pad_4dvol_along_3(vol, target_size[3])
+                
+    return vol
