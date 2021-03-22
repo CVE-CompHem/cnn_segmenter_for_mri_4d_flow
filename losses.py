@@ -34,7 +34,7 @@ def compute_dice(logits, labels, epsilon=1e-10):
         mean_dice = tf.reduce_mean(dice)
         
         # mean over all images in the batch and over all foreground labels.
-        mean_fg_dice = tf.reduce_mean(dice[:,1:])
+        mean_fg_dice = tf.reduce_mean(dice[:, 1:])
         
     return dice, mean_dice, mean_fg_dice
 

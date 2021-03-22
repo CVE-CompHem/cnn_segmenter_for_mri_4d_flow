@@ -31,7 +31,7 @@ basepath = "/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ib
 # ============================   
 # The size to which all volumes should be cropped / padded into
 # ============================   
-common_volume_size = [112, 112, 20, 25]
+common_volume_size = [112, 112, 20, 24]
 
 # training on the first 3 subjects, on the fully sampled images, and on undersampled values upto 18
 subjects = [1, 2, 3]

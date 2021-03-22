@@ -1,25 +1,27 @@
 {
     "model_handle": "segmentation_cnn",
     "experiment_name": "run1",
+    "run_number": 1,
 
     "data_mode": "3D",
     "image_size": [
-        144,
-        112,
-        48
+        112, 
+        112, 
+        24 
     ],
     "nchannels": 4,
     "nlabels": 2,
 
-    "max_epochs": 1000,
+    "max_iterations": 1001,
     "batch_size": 8,
     "learning_rate": 0.001,
+    "da_ratio": 0.0,
     "optimizer_handle": "tf.train.AdamOptimizer",
     "loss_type": "dice",
-    "summary_writing_frequency": 20,
-    "train_eval_frequency": 320,
-    "val_eval_frequency": 320,
-    "save_frequency": 800,
+    "summary_writing_frequency": 50,
+    "train_eval_frequency": 200,
+    "val_eval_frequency": 200,
+    "save_frequency": 500,
     
     "continue_run": false,
     "debug": false,

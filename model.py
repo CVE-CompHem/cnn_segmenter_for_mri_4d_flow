@@ -93,7 +93,8 @@ def evaluation(logits,
                labels,
                images,
                nlabels,
-               loss_type):
+               loss_type,
+               labels_as_1hot=False):
     '''
     A function for evaluating the performance of the netwrok on a minibatch. This function returns the loss and the 
     current foreground Dice score, and also writes example segmentations and images to to tensorboard.
@@ -123,7 +124,8 @@ def evaluation(logits,
     loss_, dice_ = evaluate_losses(logits,
                                    labels,
                                    nlabels,
-                                   loss_type)
+                                   loss_type,
+                                   labels_as_1hot)
 
     return loss_, dice_
 
@@ -132,12 +134,14 @@ def evaluation(logits,
 def evaluate_losses(logits,
                     labels,
                     nlabels,
-                    loss_type):
+                    loss_type,
+                    labels_as_1hot):
     '''
     A function to compute various loss measures to compare the predicted and ground truth annotations
     '''
     
-    labels = tf.one_hot(labels, depth = nlabels, axis = -1)
+    if labels_as_1hot is False:
+        labels = tf.one_hot(labels, depth = nlabels, axis = -1)
     
     loss_ = loss(logits,
                  labels,

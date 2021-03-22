@@ -1,37 +1,45 @@
 # ==================================================================
-# import 
+# import modules
 # ==================================================================
 import shutil
-import logging
 import os.path
-import numpy as np
-import tensorflow as tf
 import utils
+import h5py
+import numpy as np
 import model as model
-from config.system import config as sys_config
-import data_freiburg_numpy_to_hdf5
+import tensorflow as tf
 
 # arguments
 from args import args
 
 # ==================================================================
-# Set the config file of the experiment you want to run here:
+# The config parameters are imported below
+# This is done is a somewhat (and perhaps, unnecessarily complicated) manner!
+# First, we look into the 'unet.py' file that is present inside the experiments directory
+# This, in turn, reads the model parameters from args.model file, which, in turn, is set in the args.py file(!)
+# Currently, the args.model is set to 'experiments/unet_neerav.json' file. 
+# So, ultimately, the parameters that are read below are from the experiments/unet_neerav.json file.
 # ==================================================================
 from experiments.unet import model_config as exp_config
 
 # ==================================================================
-# setup logging
+# import and setup logging
 # ==================================================================
+import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-if args.train is True and args.training_output is not None:
-    log_dir = args.training_output
-elif args.train is False and args.inference_output is not None:
-    log_dir = args.inference_output
-else:
-    log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+# ===================================
+# parse arguments
+# ===================================
+# parser = argparse.ArgumentParser(prog = 'PROG')
+# parser.add_argument('--training_data_filename', default = "full_path_and_filename_of_the_training_data")
+# parser.add_argument('--training_output_dir', default = "directory_where_the_trained_model_should_be_stored")
+# args = parser.parse_args()
 
-print('log_dir: ' + str(log_dir))
+# ===================================
+# Set the logging directory
+# ===================================
+log_dir = args.training_output + exp_config.experiment_name
 logging.info('Logging directory: %s' %log_dir)
 
 # ==================================================================
@@ -48,7 +56,7 @@ def run_training(continue_run):
     # ============================
     # Initialize step number - this is number of mini-batch runs
     # ============================
-    init_step = 1  # plus 1 as otherwise starts with eval
+    init_step = 0  
 
     # ============================
     # if continue_run is set to True, load the model parameters saved earlier
@@ -65,45 +73,20 @@ def run_training(continue_run):
         except:
             logging.warning('Did not find init checkpoint. Maybe first run failed. Disabling continue mode...')
             continue_run = False
-            init_step = 1  # plus 1 as otherwise starts with eval
+            init_step = 0 # plus 1 as otherwise starts with eval
         logging.info('============================================================')
 
     # ============================
-    # Load data
+    # Load training data
     # ============================   
     logging.info('============================================================')
-    logging.info('Loading training data from: ' + sys_config.project_data_root)    
-    data_tr = data_freiburg_numpy_to_hdf5.load_data(basepath = sys_config.project_data_root,
-                                                    idx_start = 0,
-                                                    idx_end = 19,
-                                                    train_test='train')
-    images_tr = data_tr['images_train']
-    labels_tr = data_tr['labels_train']
-    logging.info('Shape of training images: %s' %str(images_tr.shape)) # expected: [img_size_z*num_images, img_size_x, vol_size_y, img_size_t, n_channels]
-    logging.info('Shape of training labels: %s' %str(labels_tr.shape)) # expected: [img_size_z*num_images, img_size_x, vol_size_y, img_size_t]
-
+    logging.info('Loading training data')    
+    training_data_hdf5 = h5py.File(args.training_input, "r")
+    images_tr = training_data_hdf5['images'] # e.g.[21, 112, 112, 20, 25, 4] : [num_subjects*num_r_values, nx, ny, nz, nt, 4]
+    labels_tr = training_data_hdf5['labels'] # e.g.[21, 112, 112, 20, 25, 1] : [num_subjects*num_r_values, nx, ny, nz, nt, 1] # contains the prob. of the aorta (FG)
+    logging.info('Shape of training images: %s' %str(images_tr.shape)) 
+    logging.info('Shape of training labels: %s' %str(labels_tr.shape))
     logging.info('============================================================')
-    logging.info('Loading validation data from: ' + sys_config.project_data_root)        
-    data_vl = data_freiburg_numpy_to_hdf5.load_data(basepath = sys_config.project_data_root,
-                                                    idx_start = 20,
-                                                    idx_end = 24,
-                                                    train_test='validation')
-    images_vl = data_vl['images_validation']
-    labels_vl = data_vl['labels_validation']
-    logging.info('Shape of validation images: %s' %str(images_vl.shape))
-    logging.info('Shape of validation labels: %s' %str(labels_vl.shape))
-    logging.info('============================================================')
-
-    # visualize some training images and their labels
-    visualize_images = False
-    if visualize_images is True:
-        for sub_tr in range(20):
-            utils.save_sample_image_and_labels_across_z(images_tr[sub_tr*32 : (sub_tr+1)*32, ...],
-                                                        labels_tr[sub_tr*32 : (sub_tr+1)*32, ...],
-                                                        log_dir + '/training_subject' + str(sub_tr))
-            utils.save_sample_image_and_labels_across_t(images_tr[sub_tr*32 : (sub_tr+1)*32, ...],
-                                                        labels_tr[sub_tr*32 : (sub_tr+1)*32, ...],
-                                                        log_dir + '/training_subject' + str(sub_tr))
             
     # ================================================================
     # build the TF graph
@@ -120,10 +103,10 @@ def run_training(continue_run):
         # create placeholders
         # ================================================================
         logging.info('Creating placeholders...')
-        image_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.nchannels]
-        label_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size)
+        image_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.nchannels] # e.g.[8, 112, 112, 25, 4] : [bs, nx, ny, nt, 4]
+        label_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size) + [2] # # e.g.[8, 112, 112, 25, 2] : [bs, nx, ny, nt, 2]
         images_pl = tf.placeholder(tf.float32, shape=image_tensor_shape, name = 'images')
-        labels_pl = tf.placeholder(tf.uint8, shape=label_tensor_shape, name = 'labels')
+        labels_pl = tf.placeholder(tf.float32, shape=label_tensor_shape, name = 'labels')
         training_pl = tf.placeholder(tf.bool, shape=[], name = 'training_or_testing')
 
         # ================================================================
@@ -140,7 +123,8 @@ def run_training(continue_run):
         loss = model.loss(logits,
                           labels_pl,
                           exp_config.nlabels,
-                          loss_type = exp_config.loss_type)
+                          loss_type = exp_config.loss_type,
+                          labels_as_1hot = True)
         
         # ================================================================
         # Add the loss to tensorboard for visualizing its evolution as training proceeds
@@ -161,7 +145,8 @@ def run_training(continue_run):
                                      labels_pl,
                                      images_pl,
                                      nlabels = exp_config.nlabels,
-                                     loss_type = exp_config.loss_type)
+                                     loss_type = exp_config.loss_type,
+                                     labels_as_1hot = True)
 
         # ================================================================
         # Build the summary Tensor based on the TF collection of Summaries
@@ -223,14 +208,14 @@ def run_training(continue_run):
         # ================================================================
         # Run the Op to initialize the variables.
         # ================================================================
-        logging.info('============================================================')
+        logging.info('=================================================')
         logging.info('initializing all variables...')
         sess.run(init_op)
         
         # ================================================================
         # print names of uninitialized variables
         # ================================================================
-        logging.info('============================================================')
+        logging.info('=================================================')
         logging.info('This is the list of uninitialized variables:' )
         uninit_variables = sess.run(uninit_vars)
         for v in uninit_variables: print(v)
@@ -240,7 +225,7 @@ def run_training(continue_run):
         # ================================================================
         if continue_run:
             # Restore session
-            logging.info('============================================================')
+            logging.info('=================================================')
             logging.info('Restroring session from: %s' %init_checkpoint_path)
             saver.restore(sess, init_checkpoint_path)
 
@@ -253,100 +238,96 @@ def run_training(continue_run):
         # ================================================================
         # run training epochs
         # ================================================================
-        while step < exp_config.max_steps:
-
-            logging.info('============================================================')
-            logging.info('Step %d' % step)
+        while step < exp_config.max_iterations:
         
-            for batch in iterate_minibatches(images_tr,
-                                             labels_tr,
-                                             batch_size = exp_config.batch_size):
+            x, y = get_batch(images_tr, labels_tr, exp_config)
+
+            # ===========================
+            # run training iteration
+            # ===========================
+            feed_dict = {images_pl: x,
+                         labels_pl: y,
+                         training_pl: True}   
+            
+            _, loss_value = sess.run([train_op, loss], feed_dict=feed_dict)
+
+            # ===========================
+            # write the summaries and print an overview fairly often
+            # ===========================
+            if step % exp_config.summary_writing_frequency == 0:                    
+
+                logging.info('Step %d: loss = %.2f' % (step+1, loss_value))                                   
+
+                # ===========================
+                # update the events file
+                # ===========================
+                summary_str = sess.run(summary, feed_dict=feed_dict)
+                summary_writer.add_summary(summary_str, step)
+                summary_writer.flush()
+
+            # ===========================
+            # compute the loss on the entire training set
+            # ===========================
+            if step % exp_config.train_eval_frequency == 0:
+
+                logging.info('Training Data Eval:')
+                [train_loss, train_dice] = do_eval(sess,
+                                                   eval_loss,
+                                                   images_pl,
+                                                   labels_pl,
+                                                   training_pl,
+                                                   images_tr,
+                                                   labels_tr,
+                                                   exp_config)                    
+
+                tr_summary_msg = sess.run(tr_summary, feed_dict={tr_error: train_loss, tr_dice: train_dice})
+                summary_writer.add_summary(tr_summary_msg, step)
                 
-                x, y = batch
+            # ===========================
+            # save a checkpoint periodically
+            # ===========================
+            if step % exp_config.save_frequency == 0:
 
-                # ===========================
-                # run training iteration
-                # ===========================
-                feed_dict = {images_pl: x,
-                             labels_pl: y,
-                             learning_rate_pl: curr_lr,
-                             training_pl: True}   
+                logging.info('Step %d: saving checkpoint' % (step))
+                checkpoint_file = os.path.join(log_dir, 'models/model.ckpt')
+                saver.save(sess, checkpoint_file, global_step=step)
+
+            # ===========================
+            # evaluate the model on the validation set
+            # ===========================
+            if step % exp_config.val_eval_frequency == 0:
                 
-                _, loss_value = sess.run([train_op, loss], feed_dict=feed_dict)
+                # ===========================
+                # Evaluate against the validation set
+                # ===========================
+                logging.info('Validation Data Eval:')
+                [val_loss, val_dice] = do_eval(sess,
+                                               eval_loss,
+                                               images_pl,
+                                               labels_pl,
+                                               training_pl,
+                                               images_tr,
+                                               labels_tr,
+                                               exp_config)
+                
+                vl_summary_msg = sess.run(vl_summary, feed_dict={vl_error: val_loss, vl_dice: val_dice})
+                summary_writer.add_summary(vl_summary_msg, step)                    
 
                 # ===========================
-                # write the summaries and print an overview fairly often
+                # save model if the val dice is the best yet
                 # ===========================
-                if (step+1) % exp_config.summary_writing_frequency == 0:                    
-                    logging.info('Step %d: loss = %.2f' % (step+1, loss_value))                                   
+                if val_dice > best_dice:
+                    best_dice = val_dice
+                    best_file = os.path.join(log_dir, 'models/best_dice.ckpt')
+                    saver_best_dice.save(sess, best_file, global_step=step)
+                    logging.info('Found new average best dice on validation sets! - %f -  Saving model.' % val_dice)
 
-                    # ===========================
-                    # update the events file
-                    # ===========================
-                    summary_str = sess.run(summary, feed_dict=feed_dict)
-                    summary_writer.add_summary(summary_str, step)
-                    summary_writer.flush()
-
-                # ===========================
-                # compute the loss on the entire training set
-                # ===========================
-                if step % exp_config.train_eval_frequency == 0:
-
-                    logging.info('Training Data Eval:')
-                    [train_loss, train_dice] = do_eval(sess,
-                                                       eval_loss,
-                                                       images_pl,
-                                                       labels_pl,
-                                                       training_pl,
-                                                       images_tr,
-                                                       labels_tr,
-                                                       exp_config.batch_size)                    
-
-                    tr_summary_msg = sess.run(tr_summary, feed_dict={tr_error: train_loss, tr_dice: train_dice})
-                    summary_writer.add_summary(tr_summary_msg, step)
-                    
-                # ===========================
-                # save a checkpoint periodically
-                # ===========================
-                if step % exp_config.save_frequency == 0:
-
-                    logging.info('Step %d: saving checkpoint' % (step))
-                    checkpoint_file = os.path.join(log_dir, 'models/model.ckpt')
-                    saver.save(sess, checkpoint_file, global_step=step)
-
-                # ===========================
-                # evaluate the model on the validation set
-                # ===========================
-                if step % exp_config.val_eval_frequency == 0:
-                    
-                    # ===========================
-                    # Evaluate against the validation set
-                    # ===========================
-                    logging.info('Validation Data Eval:')
-                    [val_loss, val_dice] = do_eval(sess,
-                                                     eval_loss,
-                                                     images_pl,
-                                                     labels_pl,
-                                                     training_pl,
-                                                     images_vl,
-                                                     labels_vl,
-                                                     exp_config.batch_size)
-                    
-                    vl_summary_msg = sess.run(vl_summary, feed_dict={vl_error: val_loss, vl_dice: val_dice})
-                    summary_writer.add_summary(vl_summary_msg, step)                    
-
-                    # ===========================
-                    # save model if the val dice is the best yet
-                    # ===========================
-                    if val_dice > best_dice:
-                        best_dice = val_dice
-                        best_file = os.path.join(log_dir, 'models/best_dice.ckpt')
-                        saver_best_dice.save(sess, best_file, global_step=step)
-                        logging.info('Found new average best dice on validation sets! - %f -  Saving model.' % val_dice)
-
-                step += 1
+            step += 1
                 
         sess.close()
+        
+        # close the hdf5 file containing the training data
+        training_data_hdf5.close()
 
 # ==================================================================
 # ==================================================================
@@ -355,35 +336,18 @@ def do_eval(sess,
             images_placeholder,
             labels_placeholder,
             training_time_placeholder,
-            volumes,
+            images,
             labels,
-            batch_size):
-
-    '''
-    Function for running the evaluations every X iterations on the training and validation sets. 
-    :param sess: The current tf session 
-    :param eval_loss: The placeholder containing the eval loss
-    :param volumes_placeholder: Placeholder for the volumes
-    :param labels_placeholder: Placeholder for the masks
-    :param training_time_placeholder: Placeholder toggling the training/testing mode. 
-    :param volumes: A numpy array or h5py dataset containing the volumes
-    :param labels: A numpy array or h45py dataset containing the corresponding labels 
-    :param batch_size: The batch_size to use. 
-    :return: The average loss (as defined in the experiment), and the average dice over all `volumes`. 
-    '''
+            exp_config):
 
     loss_ii = 0
     dice_ii = 0
     num_batches = 0
 
-    for batch in iterate_minibatches(volumes,
-                                     labels,
-                                     batch_size=batch_size):
+    for _ in range(10):
+    
+        x, y = get_batch(images, labels, exp_config)
         
-        x, y = batch
-        if y.shape[0] < batch_size:
-            continue
-
         feed_dict = {images_placeholder: x,
                      labels_placeholder: y,
                      training_time_placeholder: False}
@@ -401,45 +365,48 @@ def do_eval(sess,
 
 # ==================================================================
 # ==================================================================
-def iterate_minibatches(images,
-                        labels,
-                        batch_size):
+def get_batch(images,
+              labels,
+              batch_size):
     '''
-    Function to create mini batches from the dataset of a certain batch size 
-    :param images: numpy dataset
-    :param labels: numpy dataset (same as images/volumes)
+    Function to get a batch from the dataset
+    :param images: numpy array
+    :param labels: numpy array
     :param batch_size: batch size
-    :return: mini batches
+    :return: batch
     '''
 
-    # ===========================
-    # generate indices to randomly select slices in each minibatch
-    # ===========================
-    n_images = images.shape[0]
-    random_indices = np.arange(n_images)
-    np.random.shuffle(random_indices)
-                    
-    # ===========================
-    # using only a fraction of the batches in each epoch
-    # ===========================
-    for b_i in range(0, n_images, batch_size):
-        
-        if b_i + batch_size > n_images:
-            continue
-        
-        # HDF5 requires indices to be in increasing order
-        batch_indices = np.sort(random_indices[b_i:b_i+batch_size])
-
-        X = images[batch_indices, ...]
-        y = labels[batch_indices, ...]
+    x = np.zeros((exp_config.batch_size,
+                  exp_config.image_size[0],
+                  exp_config.image_size[1],
+                  exp_config.image_size[2],
+                  exp_config.nchannels), dtype = np.float32)
+    
+    y = np.zeros((exp_config.batch_size,
+                  exp_config.image_size[0],
+                  exp_config.image_size[1],
+                  exp_config.image_size[2],
+                  2), dtype = np.float32)
+    
+    for b in range(exp_config.batch_size):  
     
         # ===========================
-        # augment the batch            
+        # generate indices to randomly select different x-y-t volumes in the batch
         # ===========================
-        if exp_config.da_ratio > 0.0:
-            X, y = utils.augment_data(X, y)
+        random_image_index = np.random.randint(images.shape[0])
+        random_z_index = np.random.randint(images.shape[3])
         
-        yield X, y
+        x[b, :, :, :, :] = images[random_image_index, :, :, random_z_index, :, :]
+        y[b, :, :, :, 0] = 1 - labels[random_image_index, :, :, random_z_index, :, 0] # prob. of background
+        y[b, :, :, :, 1] = labels[random_image_index, :, :, random_z_index, :, 0] # prob. of foreground
+
+    # ===========================
+    # augment the batch            
+    # ===========================
+    if exp_config.da_ratio > 0.0:
+        x, y = utils.augment_data(x, y)
+    
+    return x, y
 
 # ==================================================================
 # ==================================================================
@@ -479,13 +446,9 @@ def main():
             logging.error("Import error for pydevd_pycharm ignored (should not be running debug version).")
 
     # ===========================
-    # Run training/inference as requested
+    # Run the training
     # ===========================
-    if args.train is True:
-        train()
-    else:
-        import inference
-        inference.run_inference()
+    train()
 
 # ==================================================================
 # ==================================================================
