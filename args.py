@@ -10,7 +10,7 @@ def parse_args():
     parser.add_argument('--train', dest='train', action='store_true', help='run training')
     parser.add_argument('--inference', dest='train', action='store_false', help='run inference')
     parser.add_argument('--config', type=str, default='config/cnn_segmenter_neerav.json', help='Directory containing MRI data set')
-    parser.add_argument('--model', type=str, default='experiments/unet_neerav.json', help='Directory containing model configuration')
+    parser.add_argument('--model', type=str, default='experiments/unet.json', help='Directory containing model configuration')
 
     # training arguments
     parser.add_argument('--training_input', type=str, help='Path to the directory containing the training data')
