@@ -66,7 +66,7 @@ def run_inference():
     logging.info('================ Looking for saved segmentation model... ')
     modelname = 'best_dice.ckpt'
     logging.info('args.training_output: ' + args.training_output  + exp_config.experiment_name + '/models/' + modelname)
-    if os.path.exists(args.training_output + exp_config.experiment_name + '/models/' + modelname):
+    if os.path.exists(args.training_output + exp_config.experiment_name + '/models/' + modelname + '.index'):
         best_dice_checkpoint_path = args.training_output + exp_config.experiment_name + '/models/' + modelname
         logging.info('Found saved model at %s. This will be used for predicted the segmentation.' % best_dice_checkpoint_path)
     else:
@@ -119,9 +119,8 @@ def run_inference():
         # ================================================================
         train_vars_list = []
         for v in tf.trainable_variables():
-            train_vars_list.append(v)            
-            print(v.name)
-        saver_best_dice = tf.train.Saver(var_list = train_vars_list)
+            train_vars_list.append(v)
+        saver_best_dice = tf.train.Saver()
 
         # ================================================================
         # Create session
@@ -159,7 +158,10 @@ def run_inference():
         # ============================
         # crop / pad back to the original dimensions
         # ============================
+        flowMRI_seg_prob = np.expand_dims(flowMRI_seg_prob, axis = -1)
         flowMRI_seg_prob = utils.crop_or_pad_4dvol(flowMRI_seg_prob, orig_volume_size)
+        flowMRI_seg_prob = np.squeeze(flowMRI_seg_prob)
+        logging.info('shape of predicted segmentation: ' + str(flowMRI_seg_prob.shape))
 
         # ============================
         # create an instance of the SegmentedFlowMRI class, with the image information from flow_mri as well as the predicted segmentation probabilities

@@ -4,8 +4,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
 def segmentation_cnn(input_images, # a batch of input images
                      training, # a bool indicating whether we are training or testing (affects the BN layer)
-                     nlabels,
-                     use_bn = False): # number of channels in the output 
+                     nlabels): # number of channels in the output 
     
     with tf.variable_scope('segmenter'):
         
@@ -140,7 +139,7 @@ def segmentation_cnn(input_images, # a batch of input images
         conv9_2 = tf.layers.Conv3D(filters = 1*n0, kernel_size=(3,3,3), padding='same')(conv9_1)
         conv9_2 = tf.layers.BatchNormalization()(conv9_2, training=training)
         conv9_2 = tf.nn.relu(conv9_2)
-        logging.info('Shape after 4rd upsampling block: ' + str(conv9_2.shape)) 
+        logging.info('Shape after 4th upsampling block: ' + str(conv9_2.shape)) 
         logging.info('=======================================================')
         logging.info('Each upsampling block consists of bilinear upsampling, followed by skip connection, followed by 2 conv blocks.')
         logging.info('=======================================================')

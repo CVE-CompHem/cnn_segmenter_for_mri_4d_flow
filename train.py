@@ -171,8 +171,8 @@ def run_training(continue_run):
         for v in tf.trainable_variables():
             train_vars_list.append(v)            
             print(v.name)
-        saver = tf.train.Saver(var_list = train_vars_list)
-        saver_best_dice = tf.train.Saver(var_list = train_vars_list)
+        saver = tf.train.Saver()
+        saver_best_dice = tf.train.Saver()
 
         # ================================================================
         # Create session
@@ -323,7 +323,6 @@ def run_training(continue_run):
                     best_dice = val_dice
                     best_file = os.path.join(log_dir, 'models/best_dice.ckpt')
                     saver_best_dice.save(sess, best_file)
-                    # saver_best_dice.restore(sess, best_file)
                     logging.info('Found new average best dice on validation sets! - %f -  Saving model.' % val_dice)
 
             step += 1

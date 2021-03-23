@@ -1,7 +1,7 @@
 {
     "model_handle": "segmentation_cnn",
-    "experiment_name": "run2",
-    "run_number": 2,
+    "experiment_name": "run1",
+    "run_number": 1,
 
     "data_mode": "3D",
     "image_size": [
