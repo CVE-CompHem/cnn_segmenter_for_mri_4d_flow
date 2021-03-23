@@ -21,7 +21,7 @@
     "summary_writing_frequency": 50,
     "train_eval_frequency": 200,
     "val_eval_frequency": 200,
-    "save_frequency": 500,
+    "save_frequency": 200,
     
     "continue_run": false,
     "debug": false,

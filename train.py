@@ -17,7 +17,7 @@ from args import args
 # This is done is a somewhat (and perhaps, unnecessarily complicated) manner!
 # First, we look into the 'unet.py' file that is present inside the experiments directory
 # This, in turn, reads the model parameters from args.model file, which, in turn, is set in the args.py file(!)
-# Currently, the args.model is set to 'experiments/unet_neerav.json' file. 
+# Currently, the args.model is set to 'experiments/unet.json' file. 
 # So, ultimately, the parameters that are read below are from the experiments/unet_neerav.json file.
 # ==================================================================
 from experiments.unet import model_config as exp_config

@@ -18,8 +18,8 @@ source /usr/bmicnas01/data-biwi-01/nkarani/softwares/anaconda/installation_dir/b
 ## EXECUTION OF PYTHON CODE:
 python /usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/code/code/hpc-predict/segmenter/cnn_segmenter_for_mri_4d_flow/inference.py \
 --training_output '/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/code/code/hpc-predict/segmenter/cnn_segmenter_for_mri_4d_flow/logdir/' \
---inference_input '/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/v4_R8.h5' \
---inference_output '/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/v4_R8_seg_cnn.h5'
+--inference_input '/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/v5_R8.h5' \
+--inference_output '/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/v5_R8_seg_cnn.h5'
 
 echo "Hostname was: `hostname`"
 echo "Reached end of job file."
