@@ -65,11 +65,19 @@ def run_inference():
     # ============================
     logging.info('================ Looking for saved segmentation model... ')
     modelname = 'best_dice.ckpt'
-    logging.info('args.training_output: ' + args.training_output  + exp_config.experiment_name + '/models/' + modelname)
-    if os.path.exists(args.training_output + exp_config.experiment_name + '/models/' + modelname + '.index'):
-        best_dice_checkpoint_path = args.training_output + exp_config.experiment_name + '/models/' + modelname
-        logging.info('Found saved model at %s. This will be used for predicted the segmentation.' % best_dice_checkpoint_path)
-    else:
+    try_checkpoint_paths = [
+        os.path.join(args.training_output, exp_config.experiment_name, 'models', modelname),
+        args.training_output
+        ]
+    best_dice_checkpoint_path = ''
+    for chkp in try_checkpoint_paths:
+        if os.path.exists(f'{chkp}.index'):
+            logging.info(f'Found checkpoint at path={chkp}')
+            best_dice_checkpoint_path = chkp
+            break
+        else:
+            logging.info(f'Could not find checkpoint at path={chkp}')
+    if not best_dice_checkpoint_path:
         logging.warning('Did not find a saved model. First need to run training successfully...')
         raise RuntimeError('No checkpoint available to restore from!')
 
