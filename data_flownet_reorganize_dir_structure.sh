@@ -1,23 +1,26 @@
 #!/bin/bash
 
+
 # copy fully sampled images
 for N in 1 2 3 4 5 6 7
 do
 
-    srcdir="/tmp/test.decrypt8/flownet/hpc_predict/v2/inference/2021-02-11_19-41-32_daint102_volN"
+    srcdir="../../data/v1/decrypt/flownet/hpc_predict/v2/inference/"
+    srcdir+=$1 # such as 2021-02-11_19-41-32_daint102
+    srcdir+="_volN"
     srcdir+=$N
     srcdir+="/output/recon_volN"
     srcdir+=$N
     srcdir+="_vn.mat.h5"
     
-    dstdir="/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/v"
+    dstdir="../../data/v1/decrypt/segmenter/segmenter_data/v"
     dstdir+=$N
     dstdir+="_R1.h5"
     
     echo $srcdir
     echo $dstdir
     
-    # cp $srcdir $dstdir
+    cp $srcdir $dstdir
     
 done
 
@@ -28,7 +31,9 @@ do
     for R in 8 10 12 14 16 18 20 22
     do
     
-        srcdir="/tmp/test.decrypt8/flownet/hpc_predict/v2/inference/2021-03-19_15-46-05_daint102_volN"
+        srcdir="../../data/v1/decrypt/flownet/hpc_predict/v2/inference/"
+	srcdir+=$2 #such as 2021-03-19_15-46-05_daint102
+	srcdir+="_volN"
         srcdir+=$N
         srcdir+="_R"
         srcdir+=$R
@@ -38,7 +43,7 @@ do
         srcdir+=$N
         srcdir+="_vn.mat.h5"
         
-        dstdir="/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/v"
+        dstdir="../../data/v1/decrypt/segmenter/segmenter_data/v"
         dstdir+=$N
         dstdir+="_R"
         dstdir+=$R
@@ -47,28 +52,30 @@ do
         echo $srcdir
         echo $dstdir
         
-        # cp $srcdir $dstdir
+        cp $srcdir $dstdir
 
     done    
 done
 
-# copy segmentations
+# copy random walker segmentations
 for N in 1 2 3 4 5 6 7
 do
 
-    srcdir="/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/2021-02-11_19-41-32_daint102_volN"
+    srcdir="../../data/v1/decrypt/segmenter/random_walker_segmenter/"
+    srcdir+=$3 #such as 2021-02-11_20-14-44_daint102
+    srcdir+="_volN"
     srcdir+=$N
     srcdir+="/output/recon_volN"
     srcdir+=$N
     srcdir+="_vn_seg_rw.h5"
     
-    dstdir="/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/v"
+    dstdir="../../data/v1/decrypt/segmenter/segmenter_data/v"
     dstdir+=$N
     dstdir+="_seg_rw.h5"
     
     echo $srcdir
     echo $dstdir
     
-    # cp $srcdir $dstdir
+    cp $srcdir $dstdir
     
 done

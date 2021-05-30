@@ -26,7 +26,7 @@ from mr_io import FlowMRI, SegmentedFlowMRI
 # ============================   
 # Basepath where the training data is stored as individual files
 # ============================   
-basepath = "/usr/bmicnas01/data-biwi-01/nkarani/projects/hpc_predict/data/eth_ibt/flownet/pollux/all_data/"
+basepath = sys.argv[1]
 
 # ============================   
 # The size to which all volumes should be cropped / padded into
