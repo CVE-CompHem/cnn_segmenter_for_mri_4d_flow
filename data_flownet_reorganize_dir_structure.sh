@@ -1,5 +1,8 @@
 #!/bin/bash
 
+time_stamp_host=$(date +'%Y-%m-%d_%H-%M-%S')_$(hostname)
+host_output_directory="../../data/v1/decrypt/segmenter/segmenter_data/${time_stamp_host}"
+mkdir -p ${host_output_directory}
 
 # copy fully sampled images
 for N in 1 2 3 4 5 6 7
@@ -13,7 +16,7 @@ do
     srcdir+=$N
     srcdir+="_vn.mat.h5"
     
-    dstdir="../../data/v1/decrypt/segmenter/segmenter_data/v"
+    dstdir="${host_output_directory}/v"
     dstdir+=$N
     dstdir+="_R1.h5"
     
@@ -43,7 +46,7 @@ do
         srcdir+=$N
         srcdir+="_vn.mat.h5"
         
-        dstdir="../../data/v1/decrypt/segmenter/segmenter_data/v"
+        dstdir="${host_output_directory}/v"
         dstdir+=$N
         dstdir+="_R"
         dstdir+=$R
@@ -69,7 +72,7 @@ do
     srcdir+=$N
     srcdir+="_vn_seg_rw.h5"
     
-    dstdir="../../data/v1/decrypt/segmenter/segmenter_data/v"
+    dstdir="${host_output_directory}/v"
     dstdir+=$N
     dstdir+="_seg_rw.h5"
     
