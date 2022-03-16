@@ -19,7 +19,7 @@ from experiments.unet import model_config as exp_config
 current_dir_path = os.getcwd()
 mr_io_dir_path = current_dir_path[:-39] + 'hpc-predict-io/python/'
 sys.path.append(mr_io_dir_path)
-from mr_io import FlowMRI, SegmentedFlowMRI
+from hpc_predict_io.mr_io import FlowMRI, SegmentedFlowMRI
 
 # ==================================================================
 # import and setup logging
